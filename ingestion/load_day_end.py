@@ -13,9 +13,11 @@ visible bad row, and would move "what does zero mean" above the layer boundary.
 """
 
 import argparse
+import dataclasses
 import datetime as dt
 import gzip
 import hashlib
+import json
 import os
 import pathlib
 
@@ -68,23 +70,74 @@ def parse(payload: bytes) -> list[dict]:
     return rows
 
 
-def landed_files(landing: pathlib.Path, start: dt.date | None, end: dt.date | None):
-    for path in sorted(landing.glob("*.html.gz")):
-        date = dt.date.fromisoformat(path.name.split(".")[0])
-        if start and date < start:
-            continue
-        if end and date > end:
-            continue
-        yield date, path
+@dataclasses.dataclass
+class LoadReport:
+    """What a load actually did. A gap the operator never hears about is the
+    failure mode; the gap itself is recoverable while the day is still served."""
+
+    loaded: dict[str, int] = dataclasses.field(default_factory=dict)
+    missing: list[str] = dataclasses.field(default_factory=list)
+    non_trading: list[str] = dataclasses.field(default_factory=list)
+
+    def summary(self) -> str:
+        parts = [f"loaded {len(self.loaded)} trading days, {sum(self.loaded.values())} rows"]
+        if self.non_trading:
+            parts.append(f"{len(self.non_trading)} non-trading days")
+        if self.missing:
+            parts.append(f"MISSING from landing: {', '.join(self.missing)}")
+        return "; ".join(parts)
 
 
-def load(connection, landing: pathlib.Path, start=None, end=None) -> dict[str, int]:
+def _as_date(value) -> dt.date | None:
+    if value is None or isinstance(value, dt.date):
+        return value
+    return dt.date.fromisoformat(value)
+
+
+def dates_to_consider(landing: pathlib.Path, start: dt.date | None, end: dt.date | None):
+    """Every date worth an opinion.
+
+    Given a range, walk it day by day so a date with no landed file can be
+    reported rather than silently passed over. Without a range, only what is
+    actually on disk is considered -- there is no calendar to compare against.
+    """
+    if start and end:
+        step = start
+        while step <= end:
+            yield step
+            step += dt.timedelta(days=1)
+        return
+    # Sidecars count as landed too: one marks a date the exchange held no
+    # session on, which is an answer rather than an absence.
+    seen = {
+        dt.date.fromisoformat(path.name.split(".")[0])
+        for pattern in ("*.html.gz", "*.json")
+        for path in landing.glob(pattern)
+    }
+    yield from sorted(seen)
+
+
+def load(connection, landing: pathlib.Path, start=None, end=None) -> LoadReport:
+    start, end = _as_date(start), _as_date(end)
     with connection.cursor() as cursor:
         cursor.execute(CREATE_RAW)
     connection.commit()
 
-    written = {}
-    for date, path in landed_files(landing, start, end):
+    report = LoadReport()
+    for date in dates_to_consider(landing, start, end):
+        iso = date.isoformat()
+        path = landing / f"{iso}.html.gz"
+
+        if not path.exists():
+            sidecar = landing / f"{iso}.json"
+            # The capture script leaves a marker for a date the exchange held no
+            # session on. Absent that, the day is genuinely unaccounted for.
+            if sidecar.exists() and not json.loads(sidecar.read_text()).get("trading_day", True):
+                report.non_trading.append(iso)
+            else:
+                report.missing.append(iso)
+            continue
+
         payload = gzip.decompress(path.read_bytes())
         rows = parse(payload)
         digest = hashlib.sha256(payload).hexdigest()
@@ -93,16 +146,16 @@ def load(connection, landing: pathlib.Path, start=None, end=None) -> dict[str, i
         # complete day at a time. Replacing the day rather than merging row by
         # row means a day that shrinks leaves no orphans behind.
         with connection.cursor() as cursor:
-            cursor.execute("delete from raw.day_end where trade_date = %s", (date.isoformat(),))
+            cursor.execute("delete from raw.day_end where trade_date = %s", (iso,))
             cursor.executemany(
                 f"""insert into raw.day_end ({", ".join(SOURCE_COLUMNS)}, _source_file, _source_sha256)
                     values ({", ".join(["%s"] * len(SOURCE_COLUMNS))}, %s, %s)""",
                 [[row[c] for c in SOURCE_COLUMNS] + [path.name, digest] for row in rows],
             )
         connection.commit()
-        written[date.isoformat()] = len(rows)
-        print(f"{date}: {len(rows)} rows")
-    return written
+        report.loaded[iso] = len(rows)
+
+    return report
 
 
 def connect():
@@ -121,7 +174,8 @@ def main() -> None:
     args = parser.parse_args()
 
     with connect() as connection:
-        load(connection, args.landing, args.start_date, args.end_date)
+        report = load(connection, args.landing, args.start_date, args.end_date)
+    print(report.summary())
 
 
 if __name__ == "__main__":
