@@ -41,6 +41,16 @@ EXPECTED = {
         previous_close=D("1060.00"), trade_count=12,
         turnover=D("1273000.000"), volume=1200, did_not_trade=False,
     ),
+    # A treasury bond. It never trades, yet the exchange publishes a close for it
+    # every day -- a valuation, not a trade. Zeroed OHLC means "no trades
+    # happened"; the close is real information and the only price these
+    # instruments ever have.
+    "TB10Y0127": dict(
+        open_price=None, high_price=None, low_price=None,
+        close_price=D("97.63"), last_traded_price=None,
+        previous_close=D("97.61"), trade_count=0,
+        turnover=D("0.000"), volume=0, did_not_trade=True,
+    ),
     "SQURPHARMA": dict(
         open_price=D("216.50"), high_price=D("217.90"), low_price=D("214.00"),
         close_price=D("215.80"), last_traded_price=D("215.30"),

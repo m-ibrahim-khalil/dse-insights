@@ -61,3 +61,41 @@ def test_dimension_describes_instruments_not_companies(warehouse):
     with warehouse.cursor() as cursor:
         cursor.execute("select count(*) from marts.dim_instrument where trading_code = 'ABBLPBOND'")
         assert cursor.fetchone()[0] == 1
+
+
+def test_non_traded_instrument_has_no_trade_prices(warehouse):
+    """Zeroed OHLC means no trade happened, not a price of zero."""
+    row = fact_row(warehouse, "TB10Y0127")
+    assert row["open_price"] is None
+    assert row["high_price"] is None
+    assert row["low_price"] is None
+    assert row["last_traded_price"] is None
+    assert row["did_not_trade"] is True
+
+
+def test_non_traded_instrument_keeps_its_published_close(warehouse):
+    """The exchange publishes a close for instruments that never trade.
+
+    A treasury bond's close moves daily on zero volume -- it is a valuation, and
+    the only price such an instrument has. Nulling it would erase that.
+    """
+    row = fact_row(warehouse, "TB10Y0127")
+    assert row["close_price"] == EXPECTED["TB10Y0127"]["close_price"]
+    assert row["previous_close"] == EXPECTED["TB10Y0127"]["previous_close"]
+    assert row["close_price"] != row["previous_close"]
+
+
+def test_non_traded_instrument_reports_zero_activity_not_null(warehouse):
+    """No shares changed hands is a fact, not missing data."""
+    row = fact_row(warehouse, "TB10Y0127")
+    assert row["volume"] == 0
+    assert row["trade_count"] == 0
+    assert row["turnover"] == 0
+
+
+def test_non_traded_instrument_still_has_a_row(warehouse):
+    """A gap in a series must mean missing data, never a quiet day."""
+    with warehouse.cursor() as cursor:
+        cursor.execute(
+            "select count(*) from marts.fact_daily_price where did_not_trade")
+        assert cursor.fetchone()[0] == 1
