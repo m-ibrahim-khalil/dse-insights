@@ -1,0 +1,42 @@
+name: capture day end
+
+# The exchange serves a rolling two-year window, so an uncaptured trading day is
+# eventually unrecoverable. This runs before anything else in the platform exists.
+on:
+  schedule:
+    # 13:00 UTC = 19:00 Dhaka, several hours after the 14:30 close.
+    - cron: "0 13 * * *"
+  workflow_dispatch:
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Landing is exchange-derived data, which ADR 0001 keeps out of this
+      # repository. It lives in a separate private repo.
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ vars.LANDING_REPO }}
+          token: ${{ secrets.LANDING_TOKEN }}
+          path: landing-repo
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install certifi
+
+      # Deliberately re-fetches a week each run. A missed or late run then heals
+      # itself on the next one, which is why the schedule slipping does not matter.
+      - run: python ingestion/capture_day_end.py --days 7 --landing landing-repo/dse/day_end
+
+      - name: Commit whatever is new
+        working-directory: landing-repo
+        run: |
+          git config user.name "dse-capture"
+          git config user.email "noreply@github.com"
+          git add -A
+          git diff --staged --quiet || git commit -m "capture: $(date -u +%F)"
+          git push

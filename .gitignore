@@ -1,0 +1,15 @@
+# Exchange-derived data never lives in this repository. See docs/adr/0001.
+landing/
+*.html.gz
+
+__pycache__/
+*.py[cod]
+.venv/
+.env
+
+# Local environment and build artefacts
+.env
+.venv/
+dbt/target/
+dbt/logs/
+dbt/dbt_packages/

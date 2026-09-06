@@ -1,0 +1,13 @@
+# Credentials come from the environment only. See .env.example.
+dse:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: "{{ env_var('DSE_PG_HOST') }}"
+      port: "{{ env_var('DSE_PG_PORT') | int }}"
+      dbname: "{{ env_var('DSE_PG_DATABASE') }}"
+      user: "{{ env_var('DSE_PG_USER') }}"
+      password: "{{ env_var('DSE_PG_PASSWORD') }}"
+      schema: public
+      threads: 4
