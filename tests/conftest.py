@@ -70,3 +70,20 @@ def warehouse(landing, env):
         user=env["DSE_PG_USER"], password=env["DSE_PG_PASSWORD"],
     ) as connection:
         yield connection
+
+
+@pytest.fixture(scope="session")
+def client(warehouse, env):
+    """An HTTP client against the API, with the warehouse already built.
+
+    Depends on `warehouse` so the data is loaded before the app is asked for it.
+    """
+    from fastapi.testclient import TestClient
+
+    for key in ("DSE_PG_HOST", "DSE_PG_PORT", "DSE_PG_DATABASE", "DSE_PG_USER", "DSE_PG_PASSWORD"):
+        os.environ[key] = env[key]
+
+    from api.main import app
+
+    with TestClient(app) as test_client:
+        yield test_client
