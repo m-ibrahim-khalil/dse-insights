@@ -4,15 +4,27 @@
 # is one command. This is the database only -- dockerising the platform's own
 # services is deliberately deferred (PLAN.md section 4, step 5).
 
-include .env
+-include .env
 export
+
+# Defaults, so every target works on a fresh clone before .env exists. Anything
+# set in .env wins. `include` is resolved when make parses this file, so a target
+# that creates .env cannot affect the run that created it -- hence ?= here.
+DSE_PG_HOST ?= localhost
+DSE_PG_PORT ?= 55432
+DSE_PG_DATABASE ?= dse
+DSE_PG_USER ?= dse
+DSE_PG_PASSWORD ?= dse_local_dev
 
 PG_CONTAINER := dse-postgres
 PG_IMAGE     := postgres:16-alpine
 
-.PHONY: db-up db-down db-shell dbt-debug dbt-build test fmt
+.PHONY: env db-up db-down db-shell dbt-debug dbt-build test api
 
-db-up:  ## Start the warehouse and wait for it to accept connections
+env:  ## Create .env from the example if it does not exist
+	@test -f .env || (cp .env.example .env && echo "created .env from .env.example")
+
+db-up: env  ## Start the warehouse and wait for it to accept connections
 	@docker start $(PG_CONTAINER) 2>/dev/null || docker run -d \
 		--name $(PG_CONTAINER) \
 		-e POSTGRES_DB=$(DSE_PG_DATABASE) \
@@ -47,5 +59,8 @@ dbt-debug:
 dbt-build:
 	@cd dbt && uv run dbt build
 
-test:
+test:  ## Run the full suite. Requires the warehouse to be up.
 	@uv run pytest -q
+
+api:  ## Serve the read-only price API on :8000
+	@uv run uvicorn api.main:app --reload --port 8000
