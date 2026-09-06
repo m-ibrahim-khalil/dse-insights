@@ -76,8 +76,15 @@ class LoadReport:
     failure mode; the gap itself is recoverable while the day is still served."""
 
     loaded: dict[str, int] = dataclasses.field(default_factory=dict)
+    rows_read: dict[str, int] = dataclasses.field(default_factory=dict)
     missing: list[str] = dataclasses.field(default_factory=list)
     non_trading: list[str] = dataclasses.field(default_factory=list)
+    failed: dict[str, str] = dataclasses.field(default_factory=dict)
+    refused: dict[str, str] = dataclasses.field(default_factory=dict)
+
+    @property
+    def ok(self) -> bool:
+        return not self.failed and not self.refused
 
     def summary(self) -> str:
         parts = [f"loaded {len(self.loaded)} trading days, {sum(self.loaded.values())} rows"]
@@ -85,6 +92,10 @@ class LoadReport:
             parts.append(f"{len(self.non_trading)} non-trading days")
         if self.missing:
             parts.append(f"MISSING from landing: {', '.join(self.missing)}")
+        for date, reason in sorted(self.refused.items()):
+            parts.append(f"REFUSED {date}: {reason}")
+        for date, reason in sorted(self.failed.items()):
+            parts.append(f"FAILED {date}: {reason}")
         return "; ".join(parts)
 
 
@@ -117,8 +128,43 @@ def dates_to_consider(landing: pathlib.Path, start: dt.date | None, end: dt.date
     yield from sorted(seen)
 
 
-def load(connection, landing: pathlib.Path, start=None, end=None) -> LoadReport:
+# A truncated day is refused when it falls below this fraction of what recent
+# days actually contained. The expectation comes from history; only the
+# tolerance is stated here, and it is deliberately generous -- the instrument
+# count is stable day to day, so a genuine truncation is dramatic, not marginal.
+SHORT_DAY_TOLERANCE = 0.5
+
+RECENT_ROW_COUNTS = """
+select count(*) as rows
+from raw.day_end
+where trade_date < %s
+group by trade_date
+order by trade_date desc
+limit %s
+"""
+
+
+def expected_rows(connection, before: str, sample: int = 10) -> float | None:
+    """The median row count of recent trading days already loaded.
+
+    Derived from what this warehouse has actually seen rather than from a
+    constant: the original plan hardcoded an expectation of ~300 instruments and
+    was wrong by half. There is no basis to judge a day until history exists.
+    """
+    with connection.cursor() as cursor:
+        cursor.execute(RECENT_ROW_COUNTS, (before, sample))
+        counts = sorted(row[0] for row in cursor.fetchall())
+    if not counts:
+        return None
+    middle = len(counts) // 2
+    if len(counts) % 2:
+        return float(counts[middle])
+    return (counts[middle - 1] + counts[middle]) / 2
+
+
+def load(connection, landing: pathlib.Path, start=None, end=None, allow_short_days=None) -> LoadReport:
     start, end = _as_date(start), _as_date(end)
+    allowed_short = set(allow_short_days or ())
     with connection.cursor() as cursor:
         cursor.execute(CREATE_RAW)
     connection.commit()
@@ -138,21 +184,43 @@ def load(connection, landing: pathlib.Path, start=None, end=None) -> LoadReport:
                 report.missing.append(iso)
             continue
 
-        payload = gzip.decompress(path.read_bytes())
-        rows = parse(payload)
+        # One unreadable file must not cost the operator the rest of a recovery.
+        try:
+            payload = gzip.decompress(path.read_bytes())
+            rows = parse(payload)
+        except Exception as error:
+            report.failed[iso] = f"{path.name}: {type(error).__name__}: {error}"
+            continue
+
+        report.rows_read[iso] = len(rows)
+
+        expected = expected_rows(connection, iso)
+        if expected and len(rows) < expected * SHORT_DAY_TOLERANCE and iso not in allowed_short:
+            report.refused[iso] = (
+                f"{path.name}: {len(rows)} rows against a recent median of {expected:.0f}; "
+                f"pass --allow-short-day {iso} if the day is genuinely short"
+            )
+            continue
+
         digest = hashlib.sha256(payload).hexdigest()
 
         # A Trading Day is the unit of loading, because the source publishes a
         # complete day at a time. Replacing the day rather than merging row by
         # row means a day that shrinks leaves no orphans behind.
-        with connection.cursor() as cursor:
-            cursor.execute("delete from raw.day_end where trade_date = %s", (iso,))
-            cursor.executemany(
-                f"""insert into raw.day_end ({", ".join(SOURCE_COLUMNS)}, _source_file, _source_sha256)
-                    values ({", ".join(["%s"] * len(SOURCE_COLUMNS))}, %s, %s)""",
-                [[row[c] for c in SOURCE_COLUMNS] + [path.name, digest] for row in rows],
-            )
-        connection.commit()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("delete from raw.day_end where trade_date = %s", (iso,))
+                cursor.executemany(
+                    f"""insert into raw.day_end ({", ".join(SOURCE_COLUMNS)}, _source_file, _source_sha256)
+                        values ({", ".join(["%s"] * len(SOURCE_COLUMNS))}, %s, %s)""",
+                    [[row[c] for c in SOURCE_COLUMNS] + [path.name, digest] for row in rows],
+                )
+            connection.commit()
+        except Exception as error:
+            connection.rollback()
+            report.failed[iso] = f"{path.name}: {type(error).__name__}: {error}"
+            continue
+
         report.loaded[iso] = len(rows)
 
     return report
@@ -171,11 +239,22 @@ def main() -> None:
     parser.add_argument("--landing", type=pathlib.Path, required=True)
     parser.add_argument("--start-date", type=dt.date.fromisoformat)
     parser.add_argument("--end-date", type=dt.date.fromisoformat)
+    parser.add_argument(
+        "--allow-short-day", action="append", default=[], metavar="YYYY-MM-DD",
+        help="Load this date even if its row count looks truncated.",
+    )
     args = parser.parse_args()
 
     with connect() as connection:
-        report = load(connection, args.landing, args.start_date, args.end_date)
+        report = load(
+            connection, args.landing, args.start_date, args.end_date,
+            allow_short_days=args.allow_short_day,
+        )
+    for date in sorted(report.rows_read):
+        print(f"{date}: read {report.rows_read[date]}, wrote {report.loaded.get(date, 0)}")
     print(report.summary())
+    if not report.ok:
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

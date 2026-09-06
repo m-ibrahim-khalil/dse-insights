@@ -65,19 +65,23 @@ def test_loading_the_same_day_twice_changes_nothing(connection, tmp_path):
 
 
 def test_a_day_that_shrinks_leaves_no_orphans(connection, tmp_path):
-    """Replacing the day, rather than merging row by row, is what makes this true."""
+    """Replacing the day, rather than merging row by row, is what makes this true.
+
+    The shrink is one instrument, which is what a delisting looks like. A larger
+    drop is indistinguishable from a truncated response and the row-count guard
+    refuses it -- deliberately, and covered separately in test_load_robustness.
+    """
     write_day(tmp_path, DATES[0])
     load(connection, tmp_path)
     assert raw_rows(connection, DATES[0]) == 6
 
     payload = (pathlib.Path(__file__).parent / "fixtures" / "day_end_2026-09-03.html").read_text()
-    # Drop every instrument but the first, so the day genuinely shrinks.
-    head, _, _ = payload.partition('<tr>\n<td width="4%">2</td>')
-    trimmed = (head + "</tbody>\n</table>\n</div>\n</body></html>\n").replace("2026-09-03", DATES[0])
-    write_day(tmp_path, DATES[0], payload=trimmed.encode())
+    head, _, _ = payload.partition('<tr>\n<td width="4%">6</td>')
+    delisted = head + "</tbody>\n</table>\n</div>\n</body></html>\n"
+    write_day(tmp_path, DATES[0], payload=delisted.encode())
 
     load(connection, tmp_path)
-    assert raw_rows(connection, DATES[0]) == 1
+    assert raw_rows(connection, DATES[0]) == 5, "the delisted instrument must leave no orphan"
 
 
 def test_a_range_spanning_a_non_session_date_succeeds(connection, tmp_path):

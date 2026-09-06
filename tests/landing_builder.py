@@ -13,10 +13,19 @@ import pathlib
 FIXTURE = pathlib.Path(__file__).resolve().parent / "fixtures" / "day_end_2026-09-03.html"
 
 
+FIXTURE_DATE = "2026-09-03"
+
+
 def write_day(directory: pathlib.Path, date: str, *, payload: bytes | None = None) -> pathlib.Path:
-    """Land one trading day, by default the fixture restamped to `date`."""
+    """Land one trading day as the fixture, restamped to `date`.
+
+    Restamping applies to a supplied payload too. Without that, a file named for
+    one date carries rows dated another, and an assertion that "no rows exist for
+    this date" passes for entirely the wrong reason.
+    """
     if payload is None:
-        payload = FIXTURE.read_text().replace("2026-09-03", date).encode()
+        payload = FIXTURE.read_text().encode()
+    payload = payload.replace(FIXTURE_DATE.encode(), date.encode())
     path = directory / f"{date}.html.gz"
     path.write_bytes(gzip.compress(payload))
     (directory / f"{date}.json").write_text(json.dumps({
