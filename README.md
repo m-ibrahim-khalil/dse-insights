@@ -17,7 +17,7 @@ From a fresh clone to a queried price series. Requires Docker and
 ```bash
 uv sync                    # install pinned dependencies (uv.lock)
 make db-up                 # start the warehouse, create the layer schemas
-make test                  # 47 tests: loads a fixture, builds the models, queries the API
+make test                  # loads a fixture, builds the models, queries the API
 ```
 
 `make test` is the honest proof the platform works: it drives a landed response

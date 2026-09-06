@@ -194,6 +194,17 @@ def load(connection, landing: pathlib.Path, start=None, end=None, allow_short_da
 
         report.rows_read[iso] = len(rows)
 
+        # A landed file that yields nothing is never a legitimate answer: a date
+        # with no session carries a sidecar instead of a response. Zero rows
+        # means an error page was captured, or the table markup moved. This is
+        # checked before the row-count guard because the guard needs history to
+        # judge against, and would wave the first such day straight through.
+        if not rows:
+            report.failed[iso] = (
+                f"{path.name}: parsed 0 rows -- the response is not a day-end table"
+            )
+            continue
+
         expected = expected_rows(connection, iso)
         if expected and len(rows) < expected * SHORT_DAY_TOLERANCE and iso not in allowed_short:
             report.refused[iso] = (

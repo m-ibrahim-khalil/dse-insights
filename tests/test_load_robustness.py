@@ -119,3 +119,20 @@ def test_exit_status_reflects_a_failure(connection, env, tmp_path):
     )
     assert finished.returncode != 0
     assert DATES[1] in finished.stdout + finished.stderr
+
+
+def test_a_response_that_parses_to_nothing_is_a_failure(connection, tmp_path):
+    """The silent one. An error page is valid HTML that parses to zero rows.
+
+    Caught before the row-count guard, which needs history to judge against and
+    would otherwise wave the very first such day through as a successful load.
+    """
+    write_day(tmp_path, DATES[0],
+              payload=b"<html><body><h1>Service unavailable</h1></body></html>")
+
+    report = load(connection, tmp_path)
+
+    assert DATES[0] in report.failed
+    assert DATES[0] not in report.loaded
+    assert "0 rows" in report.failed[DATES[0]]
+    assert raw_rows(connection, DATES[0]) == 0
