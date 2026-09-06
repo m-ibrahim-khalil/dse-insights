@@ -41,3 +41,37 @@ def write_non_trading_day(directory: pathlib.Path, date: str) -> None:
     (directory / f"{date}.json").write_text(json.dumps({
         "trade_date": date, "trading_day": False,
     }))
+
+
+# code, ltp, high, low, openp, closep, ycp, trade, value_mn, volume
+HEALTHY_ROW = ("GP", "285.40", "288.00", "283.10", "284.00", "285.90", "283.50",
+               "1,205", "45.678", "159,842")
+NON_TRADED_ROW = ("TB10Y0127", "0", "0", "0", "0", "97.63", "97.61", "0", "0", "0")
+
+
+def render_day(date: str, rows) -> bytes:
+    """Build a Day End Archive response with exactly the rows given.
+
+    Used to construct data that is deliberately wrong, so an assertion can be
+    watched to fail. An assertion nobody has seen fail is indistinguishable from
+    one that cannot.
+    """
+    head = (
+        "<html><body><table class='fixedHeader'><thead><tr>"
+        "<th>#</th><th>DATE</th><th>TRADING CODE</th><th>LTP*</th><th>HIGH</th>"
+        "<th>LOW</th><th>OPENP*</th><th>CLOSEP*</th><th>YCP</th><th>TRADE</th>"
+        "<th>VALUE (mn)</th><th>VOLUME</th></tr></thead><tbody>"
+    )
+    body = ""
+    for index, row in enumerate(rows, start=1):
+        code, *values = row
+        cells = "".join(f"<td>{v}</td>" for v in values)
+        body += (
+            f"<tr><td>{index}</td><td>{date}</td>"
+            f"<td><a href='displayCompany.php?name={code}'> {code} </a></td>{cells}</tr>"
+        )
+    return (head + body + "</tbody></table></body></html>").encode()
+
+
+def write_rows(directory: pathlib.Path, date: str, rows) -> pathlib.Path:
+    return write_day(directory, date, payload=render_day(date, rows))
