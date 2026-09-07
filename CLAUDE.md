@@ -62,11 +62,16 @@ an assumption:
   test rejects. This is the highest-risk failure in the project.
 - **Turnover is in BDT millions**, not BDT. Convert to taka in `staging` only —
   never also in the loader, or it double-converts.
-- **~39% of daily rows did not trade**: OHLC arrive as zero with close and previous
-  close populated. Zero is not a price. In `staging`, zeros become NULL and
-  `did_not_trade` is set; previous close survives. OHLC assertions must be
-  restricted to `WHERE NOT did_not_trade` or they fail on a third of all rows
-  (ADR 0006).
+- **~39% of daily rows did not trade**: open, high, low and last traded price
+  arrive as zero, while close and previous close are populated. Zero is not a
+  price, so in `staging` those four become NULL and `did_not_trade` is set. The
+  close and previous close are KEPT as published, and volume, turnover and trade
+  count are kept as zero -- zero is the truth about activity. The rule is "fields
+  the exchange zeroes become NULL; fields it populates are kept". Do not null the
+  close: the exchange publishes a daily valuation for instruments that never
+  trade, and for a treasury bond it is the only price that exists. OHLC
+  assertions must be restricted to `WHERE NOT did_not_trade` or they fail on a
+  third of all rows (ADR 0006).
 - **`close_price` is the exchange's official (weighted) close.** `last_traded_price`
   is a separate column and is never substituted for the close (ADR 0007).
 - **The archive is a rolling two-year window.** A trading day not captured is

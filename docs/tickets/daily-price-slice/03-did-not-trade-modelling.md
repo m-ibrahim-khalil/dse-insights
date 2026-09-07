@@ -14,15 +14,23 @@ The rows are kept rather than filtered: `raw` must mirror the source, and
 
 **Blocked by:** 02 — Landed fixture to a queryable price fact
 
+**Amended after implementation.** This ticket originally required Close Price to
+be nulled too, following ADR 0006 as first written. Measuring the non-traded rows
+showed the exchange populates the close on all but 3 of 30,292 of them, and that
+it moves daily for instruments that never trade at all. ADR 0006 was amended and
+these criteria follow it.
+
 **Status:** ready-for-agent
 
 - [ ] The fixture gains at least one Instrument that Did Not Trade
 - [ ] An Instrument counts as having Did Not Trade when both its Volume and its
       Trade Count are zero — not on either field alone
-- [ ] Zeroed Open, High, Low, Close, Volume, Turnover and Trade Count become
-      null at the `staging` boundary, per
+- [ ] The fields the exchange zeroes -- Open, High, Low and Last Traded Price --
+      become null at the `staging` boundary, per
       [ADR 0006](../../adr/0006-did-not-trade-is-modelled.md)
-- [ ] Previous Close survives that substitution
+- [ ] Close Price and Previous Close are kept exactly as published
+- [ ] Volume, Turnover and Trade Count are kept as zero, because zero is the
+      truth about activity rather than missing data
 - [ ] A row exists in `fact_daily_price` whether or not the Instrument traded
 - [ ] `fact_daily_price` carries an explicit flag marking the condition
 - [ ] A test asserts a non-traded Instrument has null prices, the flag set, and

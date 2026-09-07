@@ -180,10 +180,13 @@ than leaving orphaned rows from a previous larger load.
 **Staging model.** One `staging` model over the `raw` price feed. It performs:
 type coercion; thousands-separator removal; renaming to project vocabulary;
 Turnover conversion from millions to taka; determination of `did_not_trade`; and
-substitution of null for the zeroed Open, High, Low, Close, Volume, Turnover and
-Trade Count on rows that Did Not Trade. Previous Close survives that
-substitution. See
-[ADR 0006](../adr/0006-did-not-trade-is-modelled.md).
+substitution of null for the fields the exchange zeroes on a row that Did Not
+Trade -- Open, High, Low and Last Traded Price. Close Price and Previous Close
+are kept as published, and Volume, Turnover and Trade Count are kept as zero.
+See [ADR 0006](../adr/0006-did-not-trade-is-modelled.md), amended once the
+non-traded rows had been measured: the exchange publishes a daily valuation for
+instruments that never trade, and for a treasury bond that close is the only
+price that will ever exist.
 
 **Did Not Trade rule.** An Instrument Did Not Trade on a Trading Day when its
 Volume and Trade Count are both zero. Volume alone is not sufficient — the rule
