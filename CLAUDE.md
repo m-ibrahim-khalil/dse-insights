@@ -97,7 +97,11 @@ an assumption:
 
 ADR 0001: the exchange permits personal, non-commercial download and prohibits
 redistribution. `landing/` and `*.html.gz` are gitignored, and the CI workflow
-commits landed files to a **separate private repo** (`vars.LANDING_REPO`). Test
+commits landed files to a **separate private repo** (`vars.LANDING_REPO`,
+currently `m-ibrahim-khalil/dse-insights-landing`) using a write-scoped deploy
+key (`secrets.LANDING_DEPLOY_KEY`) rather than an account-wide token. This
+repository is public, so the capture workflow must never gain a `pull_request`
+trigger -- a fork's PR would then run with access to that key. Test
 fixtures are hand-reduced responses of ~5 instruments, never a captured day.
 There is no public price endpoint, and this is a design constraint rather than an
 omission.
