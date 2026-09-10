@@ -87,7 +87,15 @@ an assumption:
 - **A ±10% circuit limit per trading day** means any adjustment factor below ~1.11
   produces a price step indistinguishable from an ordinary bad day. Corporate
   actions cannot be detected from price movement alone (ADR 0009).
-- Trading week is Sunday–Thursday. Prices may carry thousands separators.
+- **The trading week is Sunday–Thursday, but not only.** Three Saturday sessions
+  occurred in the two years to September 2026 (2025-05-17, 2025-05-24,
+  2026-05-23), each with ~396 instruments actually trading. Never infer whether a
+  date was a Trading Day from its weekday, and never from the exchange's
+  published holiday page, which contradicts itself and carries moon-dependent
+  dates. Derive it from which dates return rows.
+- Prices may carry thousands separators.
+- The instrument count is not fixed: 655 in May 2025, 643 in May 2026, 636 in
+  September 2026. Anything comparing row counts across time must tolerate drift.
 - The exchange's TLS chain is incomplete (omits its Sectigo intermediate), so
   `ingestion/certs/sectigo-dv-r36.pem` is pinned and loaded explicitly. Do not
   "fix" this by disabling verification; curl only appears to work because it

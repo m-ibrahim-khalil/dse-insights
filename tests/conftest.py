@@ -22,9 +22,42 @@ def _env() -> dict:
     return env
 
 
+# Tests run against their own database, never the working one.
+#
+# Not fastidiousness: the row-count guard derives its expectation from the days
+# already loaded, so a warehouse holding real history (median ~650 instruments)
+# correctly refuses a 6-row fixture day as truncated. The fixture also shares a
+# date with real captured data, and loading it would replace that day. Both
+# problems vanish with a separate database and neither can be papered over in
+# the assertions.
+TEST_DATABASE = "dse_test"
+
+
 @pytest.fixture(scope="session")
 def env():
-    return _env()
+    base = _env()
+
+    admin = psycopg.connect(
+        host=base["DSE_PG_HOST"], port=base["DSE_PG_PORT"], dbname="postgres",
+        user=base["DSE_PG_USER"], password=base["DSE_PG_PASSWORD"], autocommit=True,
+    )
+    with admin:
+        with admin.cursor() as cursor:
+            cursor.execute(f'drop database if exists "{TEST_DATABASE}" with (force)')
+            cursor.execute(f'create database "{TEST_DATABASE}"')
+
+    testing = dict(base, DSE_PG_DATABASE=TEST_DATABASE)
+
+    with psycopg.connect(
+        host=testing["DSE_PG_HOST"], port=testing["DSE_PG_PORT"], dbname=TEST_DATABASE,
+        user=testing["DSE_PG_USER"], password=testing["DSE_PG_PASSWORD"],
+    ) as connection:
+        with connection.cursor() as cursor:
+            for layer in ("raw", "staging", "intermediate", "marts"):
+                cursor.execute(f"create schema if not exists {layer}")
+        connection.commit()
+
+    return testing
 
 
 @pytest.fixture(scope="session")

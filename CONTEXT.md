@@ -33,11 +33,13 @@ _Avoid_: industry, segment
 ## Time
 
 **Trading Day**:
-A calendar date on which the exchange held a session. Sunday to Thursday, less holidays.
+A calendar date on which the exchange held a session. Usually Sunday to Thursday
+less holidays, but Saturday sessions occur, so the weekday never settles it.
 _Avoid_: business day, weekday, market day
 
 **Trading Calendar**:
-The set of trading days, derived from which dates actually return data.
+The set of Trading Days, derived from which dates actually return data rather
+than from the exchange's published holiday list or from the weekday.
 _Avoid_: holiday calendar, schedule
 
 ## Prices
