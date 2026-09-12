@@ -82,6 +82,22 @@ Airflow, plus days-behind-landing over time, which should sit flat at zero.
 **Data health** — is the result worth trusting? Freshness, volumes, the
 did-not-trade share, the instrument universe, and assertion counts.
 
+**Data completeness** — what is actually in the warehouse? Every instrument with
+its first and last day, how many trading days it is missing, every attribute with
+its null rate, and a table of instruments with holes. This one queries Postgres
+directly rather than Prometheus: "how many days is each of 689 instruments
+missing" would need one time series per instrument, which is a cardinality
+explosion and the wrong tool. Grafana connects as a read-only role that cannot
+write to the warehouse.
+
+Two things it shows that are worth understanding rather than fixing. Completeness
+is measured against each instrument's *own* first-seen to last-seen span, not
+against a rectangle of every instrument on every day — instruments legitimately
+arrive and mature. And the null rates are a decision, not damage: the four trade
+prices are null on days an instrument did not trade, while close and previous
+close are always present, because the exchange publishes a valuation even for
+instruments that never trade.
+
 ![Pipeline health dashboard](docs/images/grafana-pipeline-health.png)
 
 ![Data health dashboard](docs/images/grafana-data-health.png)

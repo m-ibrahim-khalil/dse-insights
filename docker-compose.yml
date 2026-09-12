@@ -246,6 +246,9 @@ services:
       GF_USERS_ALLOW_SIGN_UP: 'false'
       # Dashboards are provisioned from files, so this is the one place they live.
       GF_DASHBOARDS_MIN_REFRESH_INTERVAL: 10s
+      # Read by the warehouse datasource provisioning file.
+      DSE_PG_DATABASE: ${DSE_PG_DATABASE:-dse}
+      GRAFANA_DB_PASSWORD: ${GRAFANA_DB_PASSWORD}
     volumes:
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro

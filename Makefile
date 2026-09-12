@@ -8,7 +8,7 @@
 -include .env
 export
 
-.PHONY: env up down destroy ps logs warehouse db-shell dbt-build test api reload
+.PHONY: env up down destroy ps logs warehouse grafana-role db-shell dbt-build test api reload
 
 env:  ## Create .env and generate local secrets. Safe to re-run.
 	@./scripts/make-env.sh
@@ -18,6 +18,7 @@ up: env  ## Build if needed and start the whole platform
 	@printf 'waiting for airflow'
 	@until curl -sf "http://localhost:$(AIRFLOW_PORT)/api/v2/version" >/dev/null 2>&1; do printf '.'; sleep 2; done
 	@echo ' ready'
+	@$(MAKE) --no-print-directory grafana-role
 	@echo ""
 	@echo "  Airflow     http://localhost:$(AIRFLOW_PORT)   user $(AIRFLOW_ADMIN_USER)"
 	@echo "  Grafana     http://localhost:$(GRAFANA_PORT)   user $(GRAFANA_ADMIN_USER)"
@@ -41,6 +42,11 @@ warehouse: env  ## Start only the warehouse, for running tests without Airflow
 	@docker compose up -d warehouse
 	@until docker compose exec -T warehouse pg_isready -U $(DSE_PG_USER) -q; do sleep 1; done
 	@echo "warehouse ready on localhost:$(DSE_PG_PORT)"
+
+grafana-role:  ## Create the read-only warehouse role Grafana queries with
+	@docker compose exec -T -e PGPASSWORD=$(DSE_PG_PASSWORD) warehouse \
+		psql -U $(DSE_PG_USER) -d $(DSE_PG_DATABASE) -q -v grafana_password=$(GRAFANA_DB_PASSWORD) \
+		-f - < docker/warehouse-grafana-role.sql
 
 db-shell:
 	@docker compose exec -e PGPASSWORD=$(DSE_PG_PASSWORD) warehouse \

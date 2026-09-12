@@ -1,0 +1,20 @@
+apiVersion: 1
+datasources:
+  # Completeness is a catalog question, not a time-series one: "how many days is
+  # each of 689 instruments missing" would need one Prometheus series per
+  # instrument, which is a cardinality explosion and the wrong tool. Grafana
+  # queries the warehouse directly instead, as a read-only role.
+  - name: Warehouse
+    uid: dse-warehouse
+    type: grafana-postgresql-datasource
+    access: proxy
+    url: warehouse:5432
+    database: ${DSE_PG_DATABASE}
+    user: grafana_ro
+    isDefault: false
+    editable: false
+    jsonData:
+      sslmode: disable
+      postgresVersion: 1600
+    secureJsonData:
+      password: ${GRAFANA_DB_PASSWORD}
