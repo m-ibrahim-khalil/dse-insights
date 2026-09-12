@@ -31,7 +31,10 @@ if missing:
     lines += ["", "# Added from .env.example"] + missing
 
 def is_secret(key):
-    return key.startswith("AIRFLOW_") and key.endswith(("_KEY", "_SECRET", "_PASSWORD"))
+    # Anything that looks like a credential and was left blank. The warehouse
+    # password is deliberately excluded: it is a documented local default and
+    # changing it would orphan an existing warehouse volume.
+    return key != "DSE_PG_PASSWORD" and key.endswith(("_KEY", "_SECRET", "_PASSWORD"))
 
 added, generated, out = [m.split("=")[0] for m in missing], [], []
 for line in lines:

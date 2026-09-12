@@ -14,11 +14,11 @@ the data is understood.
 
 **Blocked by:** 06 — The platform exposes metrics worth watching
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Grafana runs under Compose with its datasource and dashboards provisioned from files
-- [ ] A pipeline-health dashboard shows run outcomes, durations and last success
-- [ ] A data-health dashboard shows freshness, volumes, did-not-trade share and assertions
-- [ ] Every panel reads a metric that actually exists, with no placeholder panels
-- [ ] Dashboards load with real data on a fresh clone after one pipeline run
-- [ ] The default admin credential is not the committed one
+- [x] Grafana runs under Compose with its datasource and dashboards provisioned from files
+- [x] A pipeline-health dashboard shows run outcomes, durations and last success
+- [x] A data-health dashboard shows freshness, volumes, did-not-trade share and assertions
+- [x] Every panel reads a metric that actually exists, with no placeholder panels
+- [x] Dashboards load with real data on a fresh clone after one pipeline run
+- [x] The default admin credential is not the committed one

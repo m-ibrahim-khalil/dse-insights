@@ -18,8 +18,12 @@ up: env  ## Build if needed and start the whole platform
 	@printf 'waiting for airflow'
 	@until curl -sf "http://localhost:$(AIRFLOW_PORT)/api/v2/version" >/dev/null 2>&1; do printf '.'; sleep 2; done
 	@echo ' ready'
-	@echo "Airflow  http://localhost:$(AIRFLOW_PORT)  (user: $(AIRFLOW_ADMIN_USER))"
-	@echo "Password is in .env as AIRFLOW_ADMIN_PASSWORD"
+	@echo ""
+	@echo "  Airflow     http://localhost:$(AIRFLOW_PORT)   user $(AIRFLOW_ADMIN_USER)"
+	@echo "  Grafana     http://localhost:$(GRAFANA_PORT)   user $(GRAFANA_ADMIN_USER)"
+	@echo "  Prometheus  http://localhost:$(PROMETHEUS_PORT)"
+	@echo ""
+	@echo "  Passwords are in .env (AIRFLOW_ADMIN_PASSWORD, GRAFANA_ADMIN_PASSWORD)"
 
 down:  ## Stop the platform. Data survives.
 	@docker compose down

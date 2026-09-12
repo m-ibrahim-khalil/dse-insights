@@ -13,12 +13,12 @@ stays green.
 
 **Blocked by:** 01 — The platform comes up with one command
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Prometheus runs under Compose and scrapes on a documented interval
-- [ ] Airflow's own metrics are collected
-- [ ] A small exporter publishes data metrics read from the warehouse
-- [ ] Freshness is expressed as the age of the newest Trading Day held
-- [ ] Instrument count per Trading Day is exported, so universe drift is visible
-- [ ] The exporter degrades to an explicit "unavailable" when the warehouse is down,
+- [x] Prometheus runs under Compose and scrapes on a documented interval
+- [x] Airflow's own metrics are collected
+- [x] A small exporter publishes data metrics read from the warehouse
+- [x] Freshness is expressed as the age of the newest Trading Day held
+- [x] Instrument count per Trading Day is exported, so universe drift is visible
+- [x] The exporter degrades to an explicit "unavailable" when the warehouse is down,
       rather than reporting zero — zero is a value, absence is not

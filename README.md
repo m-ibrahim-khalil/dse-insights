@@ -71,6 +71,31 @@ The second is the quiet one. The pipeline can be entirely green while the
 warehouse falls further behind, and that is exactly what happened before any of
 this was orchestrated.
 
+### Watching it
+
+Two Grafana dashboards, provisioned from files in this repository so they exist
+on a fresh clone rather than living in one person's browser.
+
+**Pipeline health** — is the machinery running? Task durations and outcomes from
+Airflow, plus days-behind-landing over time, which should sit flat at zero.
+
+**Data health** — is the result worth trusting? Freshness, volumes, the
+did-not-trade share, the instrument universe, and assertion counts.
+
+The second is the one worth showing someone. A green DAG proves tasks ran; a
+chart of the did-not-trade share holding near 0.39 across two years is evidence
+the data is understood. The instrument-universe panel shows the same thing from
+another angle — the gap between "ever seen" and "on the newest day" is 53
+delistings, mostly treasury bonds reaching maturity.
+
+Metrics come from two places on purpose. Airflow's own, via StatsD, say whether
+tasks ran. A small exporter reads the warehouse directly and says whether the
+data is right — which a green pipeline cannot tell you.
+
+One detail worth knowing: when the warehouse is unreachable the exporter emits
+`dse_warehouse_up 0` and **nothing else**. Freshness is absent rather than zero,
+because a zero would render as "perfectly current" on every panel.
+
 ### Recovering after the platform has been off
 
 The exchange serves a **rolling two-year window**, so a trading day that is never

@@ -1,0 +1,556 @@
+{
+  "uid": "dse-data-health",
+  "title": "DSE \u00b7 Data health",
+  "description": "Is the data worth trusting? Freshness, volume, and the shape of the instrument universe.",
+  "tags": [
+    "dse"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Freshness",
+      "description": "Age of the newest trading day held. Rises over the weekend: the exchange trades Sunday to Thursday.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dse-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "dse_data_freshness_days",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dse-prometheus"
+          },
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "d",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 3
+              },
+              {
+                "color": "red",
+                "value": 5
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Instruments, newest day",
+      "description": "Drifts as listings arrive and bonds reach maturity. Not a constant.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dse-prometheus"
+      },
+      "gridPos": {
+        "x": 4,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "dse_instruments_latest_day",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dse-prometheus"
+          },
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Did not trade, newest day",
+      "description": "Listed but no trades. Normally around 39% of instruments.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dse-prometheus"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "dse_did_not_trade_latest_day",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dse-prometheus"
+          },
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Instruments ever seen",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dse-prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "dse_instruments_ever_seen",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dse-prometheus"
+          },
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Turnover, newest day",
+      "description": "Taka, converted from the millions the exchange publishes.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dse-prometheus"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "dse_turnover_latest_day_taka",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dse-prometheus"
+          },
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Days captured",
+      "description": "Trading days in landing. The archive is a rolling two-year window.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dse-prometheus"
+      },
+      "gridPos": {
+        "x": 20,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "dse_landing_trading_days_total",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dse-prometheus"
+          },
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Did-not-trade share",
+      "description": "Has held near 0.39 across two years. A sharp move means the source changed, not the market.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dse-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 12,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "dse_did_not_trade_ratio",
+          "legendFormat": "share of all rows",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dse-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Instrument universe",
+      "description": "The gap between these two is delistings: mostly treasury bonds reaching maturity.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dse-prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 4,
+        "w": 12,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "dse_instruments_latest_day",
+          "legendFormat": "on the newest day",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dse-prometheus"
+          }
+        },
+        {
+          "refId": "B",
+          "expr": "dse_instruments_ever_seen",
+          "legendFormat": "ever seen",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dse-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Freshness over time",
+      "description": "A sawtooth is healthy \u2014 it climbs over the weekend and drops on Sunday.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dse-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 11,
+        "w": 12,
+        "h": 6
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "dse_data_freshness_days",
+          "legendFormat": "days old",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dse-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "d",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Assertions",
+      "description": "From each dbt build. Failing should be flat at zero.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dse-prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 11,
+        "w": 12,
+        "h": 6
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "dse_assertions_failed",
+          "legendFormat": "failing",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dse-prometheus"
+          }
+        },
+        {
+          "refId": "B",
+          "expr": "dse_assertions_passed",
+          "legendFormat": "passing",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dse-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    }
+  ]
+}
