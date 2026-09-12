@@ -36,6 +36,10 @@ x-airflow-common: &airflow-common
     DSE_PG_USER: ${DSE_PG_USER:-dse}
     DSE_PG_PASSWORD: ${DSE_PG_PASSWORD:-dse_local_dev}
     DBT_PROFILES_DIR: /opt/project/dbt
+    DSE_ALERT_WEBHOOK: ${DSE_ALERT_WEBHOOK:-}
+    DSE_ALERT_QUIET_HOURS: ${DSE_ALERT_QUIET_HOURS:-6}
+    DSE_FRESHNESS_MAX_AGE_DAYS: ${DSE_FRESHNESS_MAX_AGE_DAYS:-4}
+    AIRFLOW_BASE_URL: ${AIRFLOW_BASE_URL:-http://localhost:8080}
     # Airflow is installed into the airflow user's site directory, which Python
     # locates from HOME. Any service overriding the image's entrypoint must set
     # this, or `airflow` resolves to a script that cannot import its own package.

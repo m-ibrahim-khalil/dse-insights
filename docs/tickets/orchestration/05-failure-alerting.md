@@ -9,10 +9,10 @@ page, or the machine is off for a week and nothing says so.
 
 **Blocked by:** 02 — The market DAG runs the pipeline end to end
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] A failed task raises an alert that names the DAG, the task and the date
-- [ ] An alert carries a link straight to the failed run's logs
-- [ ] Data older than an expected freshness threshold alerts even when no task failed
-- [ ] Alerts are rate-limited, so a week-long outage does not produce a week of noise
-- [ ] Alerting is configured from the environment, with no endpoint committed
+- [x] A failed task raises an alert that names the DAG, the task and the date
+- [x] An alert carries a link straight to the failed run's logs
+- [x] Data older than an expected freshness threshold alerts even when no task failed
+- [x] Alerts are rate-limited, so a week-long outage does not produce a week of noise
+- [x] Alerting is configured from the environment, with no endpoint committed

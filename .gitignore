@@ -15,6 +15,5 @@ dbt/logs/
 dbt/dbt_packages/
 dbt/.user.yml
 
-# Airflow runtime
+# Airflow runtime. plugins/ holds shared code and IS tracked.
 airflow/logs/
-airflow/plugins/

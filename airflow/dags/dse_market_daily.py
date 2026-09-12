@@ -19,6 +19,7 @@ import pathlib
 from airflow.sdk import dag, get_current_context, task
 from cosmos import DbtTaskGroup, ExecutionConfig, ProfileConfig, ProjectConfig, RenderConfig
 from cosmos.constants import InvocationMode, TestBehavior
+from dse_alerting import on_task_failure
 
 LANDING = pathlib.Path("/opt/project/landing/dse/day_end")
 DBT_PROJECT = pathlib.Path("/opt/project/dbt")
@@ -55,8 +56,16 @@ def trading_day() -> dt.date:
     exchange publishes end-of-day data a few hours after its 14:30 local close,
     so the day worth fetching is the one the interval ends on. Using
     `logical_date` here would quietly process yesterday, for ever.
+
+    Read off the DagRun rather than the context. Airflow 3 does not put
+    `data_interval_end` in the task context, only on the run -- and
+    `airflow dags test` does, which is how a DAG that could never run under the
+    scheduler passed its first round of checks.
     """
-    return get_current_context()["data_interval_end"].date()
+    run = get_current_context()["dag_run"]
+    end = getattr(run, "data_interval_end", None) or getattr(run, "logical_date", None)
+    # A run triggered by hand may carry neither; the day it was asked for is today.
+    return (end or dt.datetime.now(dt.timezone.utc)).date()
 
 
 def window() -> tuple[dt.date, dt.date]:
@@ -76,6 +85,8 @@ def window() -> tuple[dt.date, dt.date]:
     # put avoidable load on a public exchange site.
     max_active_runs=1,
     default_args={
+        # Fires after the retries are exhausted, not on each attempt.
+        "on_failure_callback": on_task_failure,
         "retries": 3,
         "retry_delay": dt.timedelta(minutes=3),
         "retry_exponential_backoff": True,
