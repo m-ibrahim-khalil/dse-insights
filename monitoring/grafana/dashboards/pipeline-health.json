@@ -369,7 +369,7 @@
     {
       "type": "timeseries",
       "title": "Task duration",
-      "description": "Airflow reports task duration in milliseconds.",
+      "description": "90th percentile task duration, in seconds. statsd-exporter exposes Airflow's timer as a summary; the other quantiles are available by editing the query.",
       "datasource": {
         "type": "prometheus",
         "uid": "dse-prometheus"
@@ -383,7 +383,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "airflow_task_duration_seconds",
+          "expr": "airflow_task_duration_seconds{quantile=\"0.9\"}",
           "legendFormat": "{{dag_id}} \u00b7 {{task_id}}",
           "datasource": {
             "type": "prometheus",
@@ -393,7 +393,7 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "ms",
+          "unit": "s",
           "custom": {
             "lineWidth": 2,
             "fillOpacity": 8,
