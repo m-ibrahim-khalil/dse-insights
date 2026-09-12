@@ -10,11 +10,11 @@ about changing the pipeline's safety.
 
 **Blocked by:** 02 — The market DAG runs the pipeline end to end
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Each run is parameterised by the Trading Day it is for, not by wall-clock today
-- [ ] A backfill over a date range can be launched and produces one run per date
-- [ ] Backfilled runs are limited in parallelism, so a backfill cannot hammer the source
-- [ ] Re-running a date that already loaded leaves the warehouse byte-identical
-- [ ] A date the exchange held no session on completes without writing anything
-- [ ] The README documents how to recover after the platform has been off for a week
+- [x] Each run is parameterised by the Trading Day it is for, not by wall-clock today
+- [x] A backfill over a date range can be launched and produces one run per date
+- [x] Backfilled runs are limited in parallelism, so a backfill cannot hammer the source
+- [x] Re-running a date that already loaded leaves the warehouse byte-identical
+- [x] A date the exchange held no session on completes without writing anything
+- [x] The README documents how to recover after the platform has been off for a week

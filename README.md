@@ -11,25 +11,31 @@ wrong.
 
 ## Quick start
 
-From a fresh clone to a queried price series. Requires Docker and
+From a fresh clone to a running platform. Requires Docker and
 [uv](https://docs.astral.sh/uv/); nothing else, and no cloud account.
 
 ```bash
-uv sync                    # install pinned dependencies (uv.lock)
-make db-up                 # start the warehouse, create the layer schemas
-make test                  # loads a fixture, builds the models, queries the API
+uv sync            # install pinned dependencies (uv.lock)
+make up            # build and start the whole platform
 ```
 
-`make test` is the honest proof the platform works: it drives a landed response
-all the way to an HTTP response. If it passes, everything below will too.
-
-To serve real data:
+`make up` creates `.env`, generates local secrets, and starts six services: the
+warehouse, Airflow's own database, its api server, scheduler and dag processor.
+It prints the Airflow URL and username; the password is in `.env` as
+`AIRFLOW_ADMIN_PASSWORD`.
 
 ```bash
-python ingestion/capture_day_end.py --days 7 --landing landing/dse/day_end
-uv run python -m ingestion.load_day_end --landing landing/dse/day_end
-cd dbt && uv run dbt build && cd ..
-make api
+make test          # drives a landed fixture all the way to an HTTP response
+```
+
+`make test` is the honest proof the platform works, and it creates and drops its
+own database so it can never touch real data.
+
+To load real prices and serve them:
+
+```bash
+make reload        # load everything already landed, then build the models
+make api           # read-only price API on :8000
 ```
 
 ```bash
@@ -38,7 +44,65 @@ curl localhost:8000/v1/trading-days
 open http://localhost:8000/docs        # the published schema
 ```
 
-`make db-down` destroys the warehouse and everything in it.
+`make down` stops the platform and keeps the data. `make destroy` deletes the
+warehouse and Airflow's history with it.
+
+---
+
+## Operating the pipeline
+
+Two DAGs run in Airflow.
+
+**`dse_market_daily`** runs at 13:00 UTC — 19:00 in Dhaka, several hours after
+the exchange's 14:30 close. It captures a trading day, loads it, and rebuilds
+every model and assertion. Each dbt model and each assertion is its own task, so
+a failing assertion names the model and the rule in the graph rather than hiding
+inside one green box.
+
+**`dse_freshness_check`** runs hourly and raises the alerts nothing else would.
+It watches two different broken things:
+
+| Alert | What it means |
+|---|---|
+| `landing is N days behind` | Capture stopped, or this machine was off |
+| `warehouse is N days behind landing` | Capture works; the load or dbt does not |
+
+The second is the quiet one. The pipeline can be entirely green while the
+warehouse falls further behind, and that is exactly what happened before any of
+this was orchestrated.
+
+### Recovering after the platform has been off
+
+The exchange serves a **rolling two-year window**, so a trading day that is never
+captured eventually becomes unrecoverable. After an outage, catch up promptly.
+
+```bash
+make up
+```
+
+Each scheduled run already re-covers a three-day trailing window, so a short
+outage heals itself on the next run. For anything longer, run a backfill:
+
+```bash
+docker compose exec airflow-scheduler \
+  airflow backfill create --dag-id dse_market_daily \
+  --from-date 2026-09-01 --to-date 2026-09-14 \
+  --max-active-runs 1 --run-backwards
+```
+
+**Mind the dates.** `--from-date` and `--to-date` are *logical* dates, and a run's
+trading day is the day its interval **ends** — one day later. A backfill from
+`2026-09-01` to `2026-09-03` processes trading days **09-02 and 09-03**. If you
+want a specific trading day, ask for the day before it.
+
+`--max-active-runs 1` keeps the backfill from putting a burst of load on a public
+exchange site. `--run-backwards` processes the newest dates first, which gets the
+warehouse current soonest — usually what you want after an outage.
+
+Re-running a date that already loaded is safe and asserted: loading replaces a
+trading day atomically, so a backfill over dates you already have leaves the
+warehouse byte-identical. Dates with no session complete without writing
+anything.
 
 ---
 
@@ -174,9 +238,9 @@ that could never fire.
 
 ## Configuration
 
-All configuration is environment-driven. `make db-up` creates `.env` from
-[.env.example](.env.example), which lists every variable. No credential is
-committed, and `.env` is gitignored.
+All configuration is environment-driven. `make up` creates `.env` from
+[.env.example](.env.example), which lists every variable, and generates the
+Airflow secrets locally. No credential is committed, and `.env` is gitignored.
 
 **Exchange data never enters this repository.** The exchange permits personal,
 non-commercial use and prohibits redistribution, so `landing/` is gitignored, the
