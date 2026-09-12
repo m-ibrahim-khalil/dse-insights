@@ -82,6 +82,10 @@ Airflow, plus days-behind-landing over time, which should sit flat at zero.
 **Data health** — is the result worth trusting? Freshness, volumes, the
 did-not-trade share, the instrument universe, and assertion counts.
 
+![Pipeline health dashboard](docs/images/grafana-pipeline-health.png)
+
+![Data health dashboard](docs/images/grafana-data-health.png)
+
 The second is the one worth showing someone. A green DAG proves tasks ran; a
 chart of the did-not-trade share holding near 0.39 across two years is evidence
 the data is understood. The instrument-universe panel shows the same thing from
@@ -95,6 +99,18 @@ data is right — which a green pipeline cannot tell you.
 One detail worth knowing: when the warehouse is unreachable the exporter emits
 `dse_warehouse_up 0` and **nothing else**. Freshness is absent rather than zero,
 because a zero would render as "perfectly current" on every panel.
+
+### When it breaks
+
+[Runbooks](docs/runbooks/) cover each failure mode: a red task, a refused day, a
+failing assertion, data going stale with nothing failing, an outage, and Airflow
+refusing to start. Each begins with how to *confirm* the diagnosis, because the
+symptoms overlap — a stale warehouse looks identical whether capture stopped, the
+load stopped, or the exchange was simply closed.
+
+One rule ranks above the rest: **deal with capture first.** The warehouse can
+always be rebuilt from landing. Landing cannot be rebuilt from anything, and the
+archive is a rolling two-year window.
 
 ### Recovering after the platform has been off
 
@@ -284,3 +300,4 @@ captured day ([ADR 0001](docs/adr/0001-two-sources-and-private-data.md)).
 | [docs/adr/](docs/adr/) | ten decisions, each because the obvious approach was wrong |
 | [docs/specs/](docs/specs/) | the spec for this slice |
 | [docs/tickets/](docs/tickets/) | how it was broken down and built |
+| [docs/runbooks/](docs/runbooks/) | what to do when it is red |
