@@ -140,7 +140,7 @@ declared Bonus Issues and Rights Issues. Combined with Ex-Dates detected from
 price steps, this produces the Adjustment Factor table
 ([ADR 0009](./docs/adr/0009-corporate-actions-by-cross-validation.md)).
 
-**6. Technical indicators.** Needs step 7 — computing an RSI on an unadjusted
+**6. Technical indicators.** Needs step 5 — computing an RSI on an unadjusted
 series produces confident, wrong numbers
 ([ADR 0010](./docs/adr/0010-price-return-not-total-return.md)).
 

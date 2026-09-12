@@ -121,8 +121,12 @@ omission.
   ADR; do not author one unasked.
 - Before adding any technology, it must have a problem it solves, something tried
   first, a stated cost, and a two-sentence explanation.
-- Airflow, Docker, S3, AWS, CI beyond capture, indicators, dashboards, news, ML,
-  Kafka/Spark/Kubernetes are all explicitly out of the MVP and sequenced (or
+- **Airflow, Docker, Prometheus and Grafana are now IN the MVP** (decided
+  2026-09-12, reversing the earlier deferral). Capture became automated while
+  load and dbt stayed manual, so the warehouse drifted behind landing with
+  nothing to report it. See `docs/tickets/orchestration/`.
+- S3, AWS, CI beyond capture, indicators, a dashboard over the data, news, ML,
+  Kafka/Spark/Kubernetes remain explicitly out of the MVP and sequenced (or
   refused) in PLAN.md §4 and §7. Don't reach for them.
 
 ## Price adjustment
