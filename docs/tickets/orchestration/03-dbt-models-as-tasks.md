@@ -11,10 +11,10 @@ assertion — without anyone opening a log.
 
 **Blocked by:** 02 — The market DAG runs the pipeline end to end
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Each dbt model appears as its own task, with dbt's own dependencies as edges
-- [ ] Each data assertion appears as its own task, downstream of what it tests
-- [ ] A failing assertion identifies the model and the rule in the UI
-- [ ] A model's failure stops its dependents, not unrelated branches
-- [ ] Re-running a single failed model from the UI works without a full rebuild
+- [x] Each dbt model appears as its own task, with dbt's own dependencies as edges
+- [x] Each data assertion appears as its own task, downstream of what it tests
+- [x] A failing assertion identifies the model and the rule in the UI
+- [x] A model's failure stops its dependents, not unrelated branches
+- [x] Re-running a single failed model from the UI works without a full rebuild

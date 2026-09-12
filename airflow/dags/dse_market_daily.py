@@ -15,12 +15,27 @@ from __future__ import annotations
 import datetime as dt
 import os
 import pathlib
-import subprocess
 
 from airflow.sdk import dag, get_current_context, task
+from cosmos import DbtTaskGroup, ExecutionConfig, ProfileConfig, ProjectConfig, RenderConfig
+from cosmos.constants import InvocationMode, TestBehavior
 
 LANDING = pathlib.Path("/opt/project/landing/dse/day_end")
-DBT_PROJECT = "/opt/project/dbt"
+DBT_PROJECT = pathlib.Path("/opt/project/dbt")
+DBT_EXECUTABLE = os.environ.get("DBT_EXECUTABLE", "/opt/dbt-venv/bin/dbt")
+
+# dbt is rendered into the graph model by model rather than run as one command.
+# A single `dbt build` task is one green box that says nothing: when an
+# assertion on fact_daily_price fails, the graph should name the model and the
+# rule without anyone opening a log.
+#
+# TestBehavior.AFTER_EACH puts each assertion immediately after the model it
+# tests, so a failing assertion stops that model's dependents and nothing else.
+DBT_PROFILE = ProfileConfig(
+    profile_name="dse",
+    target_name="dev",
+    profiles_yml_filepath=DBT_PROJECT / "profiles.yml",
+)
 
 # Each run re-covers a short trailing window rather than a single date. The
 # exchange's archive is a rolling two-year window, so a day missed because the
@@ -115,27 +130,30 @@ def dse_market_daily():
             "non_trading": len(report.non_trading),
         }
 
-    @task
-    def build_models(loaded: dict) -> str:
-        """Rebuild staging and marts, and run every data assertion.
+    # Every model and every assertion is its own task. Runs even when nothing new
+    # was loaded: the models are cheap to rebuild and the assertions are worth
+    # re-running against what is already there. A quiet day is not a reason to
+    # stop checking.
+    transform = DbtTaskGroup(
+        group_id="transform",
+        project_config=ProjectConfig(dbt_project_path=DBT_PROJECT),
+        profile_config=DBT_PROFILE,
+        # SUBPROCESS, not the default DBT_RUNNER: dbt lives in its own
+        # virtualenv and is deliberately not importable from Airflow's
+        # environment, so cosmos has to shell out to it rather than import it.
+        execution_config=ExecutionConfig(
+            dbt_executable_path=DBT_EXECUTABLE,
+            invocation_mode=InvocationMode.SUBPROCESS,
+        ),
+        render_config=RenderConfig(
+            dbt_executable_path=DBT_EXECUTABLE,
+            invocation_mode=InvocationMode.SUBPROCESS,
+            test_behavior=TestBehavior.AFTER_EACH,
+        ),
+        default_args={"retries": 1},
+    )
 
-        Runs even when nothing new was loaded: the models are cheap to rebuild
-        and the assertions are worth re-running against what is already there.
-        A quiet day is not a reason to stop checking.
-        """
-        finished = subprocess.run(
-            [os.environ["DBT_EXECUTABLE"], "build", "--project-dir", DBT_PROJECT],
-            capture_output=True, text=True,
-        )
-        print(finished.stdout[-8000:])
-        if finished.returncode != 0:
-            raise RuntimeError(
-                "dbt build failed — a model errored or a data assertion did not hold.\n"
-                + finished.stderr[-2000:]
-            )
-        return f"models rebuilt after loading {loaded['rows']} rows"
-
-    build_models(load(capture()))
+    load(capture()) >> transform
 
 
 dse_market_daily()

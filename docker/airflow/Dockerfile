@@ -13,7 +13,8 @@ FROM apache/airflow:3.3.1-python3.12
 RUN pip install --no-cache-dir \
       "psycopg[binary]==3.3.5" \
       "beautifulsoup4==4.14.2" \
-      "certifi"
+      "certifi" \
+      "astronomer-cosmos==1.15.1"
 
 # The image runs as the unprivileged airflow user, which cannot write to /opt,
 # so the directory is created with ownership before dropping back.
