@@ -10,13 +10,13 @@ one, but nothing loaded it, so the warehouse silently drifted behind landing.
 
 **Blocked by:** 01 — The platform comes up with one command
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] A DAG runs capture, then load, then the dbt build, in that order
-- [ ] Each task fails independently and stops only its downstream tasks
-- [ ] Tasks retry with backoff, because the exchange is occasionally slow
-- [ ] The DAG is scheduled daily, after the exchange's close plus a margin
-- [ ] A task that loads nothing new succeeds rather than failing — a quiet day
+- [x] A DAG runs capture, then load, then the dbt build, in that order
+- [x] Each task fails independently and stops only its downstream tasks
+- [x] Tasks retry with backoff, because the exchange is occasionally slow
+- [x] The DAG is scheduled daily, after the exchange's close plus a margin
+- [x] A task that loads nothing new succeeds rather than failing — a quiet day
       is not an error
-- [ ] The run is visible in the UI with per-task logs and durations
-- [ ] Running the DAG twice for the same day changes nothing in the warehouse
+- [x] The run is visible in the UI with per-task logs and durations
+- [x] Running the DAG twice for the same day changes nothing in the warehouse
