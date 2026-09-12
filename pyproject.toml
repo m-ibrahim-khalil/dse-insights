@@ -1,0 +1,25 @@
+[project]
+name = "dse-market-intelligence"
+version = "0.1.0"
+description = "A data platform over Dhaka Stock Exchange market data"
+requires-python = ">=3.11"
+dependencies = [
+    "certifi",           # the exchange's TLS chain is incomplete; see ingestion/capture_day_end.py
+    "psycopg[binary]",
+    "beautifulsoup4",
+    "fastapi",
+    "uvicorn",
+]
+
+[dependency-groups]
+dev = [
+    "dbt-core",
+    "dbt-postgres",
+    "pytest",
+    "httpx",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+markers = ["pipeline: end-to-end tests requiring the warehouse"]

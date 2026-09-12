@@ -1,0 +1,41 @@
+version: 2
+
+models:
+  - name: dim_instrument
+    description: >
+      One row per Instrument -- the tradable thing with a trading code, which
+      includes bonds and funds, not only companies (ADR 0005).
+    columns:
+      - name: instrument_key
+        description: Surrogate key. The fact references this, never the trading code.
+        tests: [unique, not_null]
+      - name: trading_code
+        description: The exchange's identifier. Natural key.
+        tests: [unique, not_null]
+
+  - name: fact_daily_price
+    description: >
+      One row per Instrument per Trading Day, whether or not it traded.
+      Prices are UNADJUSTED and always will be -- adjusted series are derived,
+      never stored (ADR 0008). This is a price-return project: cash dividends
+      are never adjusted for (ADR 0010).
+    columns:
+      - name: instrument_key
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_instrument')
+              field: instrument_key
+      - name: trade_date
+        tests: [not_null]
+      - name: close_price
+        description: The exchange's official weighted close, never the last trade (ADR 0007).
+      - name: last_traded_price
+        description: Final execution of the day. Kept distinct from the close.
+      - name: turnover
+        description: Taka. The source publishes millions; converted once, in staging.
+      - name: did_not_trade
+        description: >
+          Listed but nothing traded -- roughly 39% of real rows. OHLC assertions
+          must exclude these or they fail on a third of the data (ADR 0006).
+        tests: [not_null]

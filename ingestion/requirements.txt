@@ -1,0 +1,2 @@
+# The exchange's TLS chain is incomplete; see capture_day_end.py.
+certifi

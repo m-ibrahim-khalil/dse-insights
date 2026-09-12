@@ -1,0 +1,12 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    description: >
+      Loaded by ingestion/load_day_end.py. Mirrors the exchange's published
+      columns under the exchange's own names, all text. Nothing here is
+      interpreted -- see ADR 0004.
+    tables:
+      - name: day_end
+        description: One row per instrument per trading day, exactly as published.
