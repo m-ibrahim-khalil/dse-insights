@@ -16,12 +16,12 @@ would put scheduler churn in the same instance as analytical queries and make
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] One documented command starts warehouse, scheduler, webserver and metadata DB
-- [ ] The Airflow UI is reachable and authenticated with credentials from the environment
-- [ ] Airflow's metadata lives in its own database, not the warehouse
-- [ ] The warehouse keeps its data across a restart of the platform
-- [ ] The existing test suite still passes against the Compose warehouse
-- [ ] Teardown is documented, and distinguishes stopping from destroying data
-- [ ] No credential is committed; `.env.example` lists every new variable
+- [x] One documented command starts warehouse, scheduler, webserver and metadata DB
+- [x] The Airflow UI is reachable and authenticated with credentials from the environment
+- [x] Airflow's metadata lives in its own database, not the warehouse
+- [x] The warehouse keeps its data across a restart of the platform
+- [x] The existing test suite still passes against the Compose warehouse
+- [x] Teardown is documented, and distinguishes stopping from destroying data
+- [x] No credential is committed; `.env.example` lists every new variable
