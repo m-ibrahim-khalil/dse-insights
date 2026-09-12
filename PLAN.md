@@ -87,8 +87,27 @@ Done when all of these are true:
 - [ ] One FastAPI endpoint returns a price series for one instrument
 - [ ] A new machine can reproduce all of it from the README
 
-Explicitly **not** in the MVP: Airflow, Docker, S3, technical indicators, news,
-dashboards, AWS, CI. Each has a place in §4 and a reason for being there.
+**Orchestration and observability are in the MVP** (decided 2026-09-12, revising
+an earlier decision to defer them):
+
+- [ ] The whole platform comes up with one command
+- [ ] Airflow runs capture → load → dbt as one dependent pipeline, on a schedule
+- [ ] Each dbt model and assertion is its own task, so the lineage is visible
+- [ ] Backfill and catch-up are possible from the UI
+- [ ] A failure, and staleness without a failure, reach a human
+- [ ] Prometheus and Grafana show both pipeline health and data health
+- [ ] Runbooks exist for each failure mode
+
+The earlier reasoning — that Airflow waits until there is more than one thing to
+schedule with a dependency between them — was engineering-first and sat badly
+against §2's stated career goal. It was also overtaken: capture became automated
+while load and dbt stayed manual, and the warehouse silently drifted behind
+landing within two days. The condition has been met, and the goal always wanted
+this. See `docs/tickets/orchestration/`.
+
+Still explicitly **not** in the MVP: S3, technical indicators, news, a dashboard
+over the *data*, AWS, CI beyond capture. Each has a place in §4 and a reason for
+being there.
 
 ### Grain
 
@@ -108,30 +127,26 @@ the first real data-quality work and it produces a genuine finding either way.
 published holiday calendar contradicts itself and includes dates that depend on
 lunar observation. Needed before "is data missing?" can be answered at all.
 
-**3. Airflow.** Introduced when there is more than one thing to schedule and a
-dependency between them — not before. Capture on cron is sufficient until then.
-
-**4. Data quality and freshness.** Meaningful once the calendar exists, because
+**3. Data quality and freshness.** Meaningful once the calendar exists, because
 until then "no data today" and "no session today" are indistinguishable.
 
-**5. Docker.** When the number of services makes setup instructions unreliable.
+**4. Testing and CI.** Parser tests first — the column order is a live trap.
 
-**6. Testing and CI.** Parser tests first — the column order is a live trap.
+*(Airflow, Docker and observability were steps 3, 5 and 9 here. They moved into
+the MVP — see §3.)*
 
-**7. Corporate action feed.** A second landing feed over company pages, giving
+**5. Corporate action feed.** A second landing feed over company pages, giving
 declared Bonus Issues and Rights Issues. Combined with Ex-Dates detected from
 price steps, this produces the Adjustment Factor table
 ([ADR 0009](./docs/adr/0009-corporate-actions-by-cross-validation.md)).
 
-**8. Technical indicators.** Needs step 7 — computing an RSI on an unadjusted
+**6. Technical indicators.** Needs step 7 — computing an RSI on an unadjusted
 series produces confident, wrong numbers
 ([ADR 0010](./docs/adr/0010-price-return-not-total-return.md)).
 
-**9. Observability.** Once there is a pipeline whose failure would go unnoticed.
+**7. AWS.** As a deliberate exercise, not as hosting. A VPS is cheaper and enough.
 
-**10. AWS.** As a deliberate exercise, not as hosting. A VPS is cheaper and enough.
-
-**11. Dashboard.** Constrained by [ADR 0001](./docs/adr/0001-two-sources-and-private-data.md)
+**8. Dashboard.** Constrained by [ADR 0001](./docs/adr/0001-two-sources-and-private-data.md)
 — it may only show data we are licensed to show.
 
 ---
