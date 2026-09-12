@@ -25,7 +25,7 @@
       "gridPos": {
         "x": 0,
         "y": 0,
-        "w": 4,
+        "w": 8,
         "h": 4
       },
       "targets": [
@@ -85,9 +85,9 @@
         "uid": "dse-prometheus"
       },
       "gridPos": {
-        "x": 4,
+        "x": 8,
         "y": 0,
-        "w": 4,
+        "w": 8,
         "h": 4
       },
       "targets": [
@@ -139,9 +139,9 @@
         "uid": "dse-prometheus"
       },
       "gridPos": {
-        "x": 8,
+        "x": 16,
         "y": 0,
-        "w": 4,
+        "w": 8,
         "h": 4
       },
       "targets": [
@@ -193,9 +193,9 @@
         "uid": "dse-prometheus"
       },
       "gridPos": {
-        "x": 12,
-        "y": 0,
-        "w": 4,
+        "x": 0,
+        "y": 4,
+        "w": 8,
         "h": 4
       },
       "targets": [
@@ -247,9 +247,9 @@
         "uid": "dse-prometheus"
       },
       "gridPos": {
-        "x": 16,
-        "y": 0,
-        "w": 4,
+        "x": 8,
+        "y": 4,
+        "w": 8,
         "h": 4
       },
       "targets": [
@@ -277,7 +277,7 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
+          "unit": "currency:\u09f3",
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -301,9 +301,9 @@
         "uid": "dse-prometheus"
       },
       "gridPos": {
-        "x": 20,
-        "y": 0,
-        "w": 4,
+        "x": 16,
+        "y": 4,
+        "w": 8,
         "h": 4
       },
       "targets": [
@@ -356,7 +356,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 4,
+        "y": 8,
         "w": 12,
         "h": 7
       },
@@ -403,7 +403,7 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 4,
+        "y": 8,
         "w": 12,
         "h": 7
       },
@@ -459,7 +459,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 11,
+        "y": 15,
         "w": 12,
         "h": 6
       },
@@ -506,7 +506,7 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 11,
+        "y": 15,
         "w": 12,
         "h": 6
       },
