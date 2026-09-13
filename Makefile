@@ -1,66 +1,66 @@
 # Local development. See README.md.
 #
-# Postgres runs in a container so its version is pinned per project and teardown
-# is one command. This is the database only -- dockerising the platform's own
-# services is deliberately deferred (PLAN.md section 4, step 5).
+# The whole platform runs under docker compose: the warehouse, Airflow and (from
+# ticket 06) the metrics stack. Six services is exactly the point at which
+# written setup instructions stop being reliable, which is the trigger PLAN.md
+# named for adopting Docker.
 
 -include .env
 export
 
-# Defaults, so every target works on a fresh clone before .env exists. Anything
-# set in .env wins. `include` is resolved when make parses this file, so a target
-# that creates .env cannot affect the run that created it -- hence ?= here.
-DSE_PG_HOST ?= localhost
-DSE_PG_PORT ?= 55432
-DSE_PG_DATABASE ?= dse
-DSE_PG_USER ?= dse
-DSE_PG_PASSWORD ?= dse_local_dev
+.PHONY: env up down destroy ps logs warehouse grafana-role db-shell dbt-build test api reload
 
-PG_CONTAINER := dse-postgres
-PG_IMAGE     := postgres:16-alpine
+env:  ## Create .env and generate local secrets. Safe to re-run.
+	@./scripts/make-env.sh
 
-.PHONY: env db-up db-down db-shell dbt-debug dbt-build test api
-
-env:  ## Create .env from the example if it does not exist
-	@test -f .env || (cp .env.example .env && echo "created .env from .env.example")
-
-db-up: env  ## Start the warehouse and wait for it to accept connections
-	@docker start $(PG_CONTAINER) 2>/dev/null || docker run -d \
-		--name $(PG_CONTAINER) \
-		-e POSTGRES_DB=$(DSE_PG_DATABASE) \
-		-e POSTGRES_USER=$(DSE_PG_USER) \
-		-e POSTGRES_PASSWORD=$(DSE_PG_PASSWORD) \
-		-p $(DSE_PG_PORT):5432 \
-		$(PG_IMAGE)
-	@printf 'waiting for postgres'
-	@until docker exec $(PG_CONTAINER) pg_isready -U $(DSE_PG_USER) -q 2>/dev/null; do \
-		printf '.'; sleep 1; done
+up: env  ## Build if needed and start the whole platform
+	@docker compose up -d --build
+	@printf 'waiting for airflow'
+	@until curl -sf "http://localhost:$(AIRFLOW_PORT)/api/v2/version" >/dev/null 2>&1; do printf '.'; sleep 2; done
 	@echo ' ready'
-	@$(MAKE) --no-print-directory db-schemas
+	@$(MAKE) --no-print-directory grafana-role
+	@echo ""
+	@echo "  Airflow     http://localhost:$(AIRFLOW_PORT)   user $(AIRFLOW_ADMIN_USER)"
+	@echo "  Grafana     http://localhost:$(GRAFANA_PORT)   user $(GRAFANA_ADMIN_USER)"
+	@echo "  Prometheus  http://localhost:$(PROMETHEUS_PORT)"
+	@echo ""
+	@echo "  Passwords are in .env (AIRFLOW_ADMIN_PASSWORD, GRAFANA_ADMIN_PASSWORD)"
 
-db-schemas:
-	@docker exec -e PGPASSWORD=$(DSE_PG_PASSWORD) $(PG_CONTAINER) \
-		psql -U $(DSE_PG_USER) -d $(DSE_PG_DATABASE) -q -c \
-		"create schema if not exists raw; \
-		 create schema if not exists staging; \
-		 create schema if not exists intermediate; \
-		 create schema if not exists marts;"
+down:  ## Stop the platform. Data survives.
+	@docker compose down
 
-db-down:  ## Stop and remove the warehouse, discarding all data
-	@docker rm -f $(PG_CONTAINER) 2>/dev/null || true
+destroy:  ## Stop the platform AND delete the warehouse and Airflow history.
+	@docker compose down -v
+
+ps:
+	@docker compose ps
+
+logs:  ## Follow logs, e.g. make logs SERVICE=airflow-scheduler
+	@docker compose logs -f $(SERVICE)
+
+warehouse: env  ## Start only the warehouse, for running tests without Airflow
+	@docker compose up -d warehouse
+	@until docker compose exec -T warehouse pg_isready -U $(DSE_PG_USER) -q; do sleep 1; done
+	@echo "warehouse ready on localhost:$(DSE_PG_PORT)"
+
+grafana-role:  ## Create the read-only warehouse role Grafana queries with
+	@docker compose exec -T -e PGPASSWORD=$(DSE_PG_PASSWORD) warehouse \
+		psql -U $(DSE_PG_USER) -d $(DSE_PG_DATABASE) -q -v grafana_password=$(GRAFANA_DB_PASSWORD) \
+		-f - < docker/warehouse-grafana-role.sql
 
 db-shell:
-	@docker exec -it -e PGPASSWORD=$(DSE_PG_PASSWORD) $(PG_CONTAINER) \
+	@docker compose exec -e PGPASSWORD=$(DSE_PG_PASSWORD) warehouse \
 		psql -U $(DSE_PG_USER) -d $(DSE_PG_DATABASE)
-
-dbt-debug:
-	@cd dbt && uv run dbt debug
 
 dbt-build:
 	@cd dbt && uv run dbt build
 
-test:  ## Run the full suite. Requires the warehouse to be up.
+test: warehouse  ## Run the full suite. Creates and drops its own database.
 	@uv run pytest -q
 
 api:  ## Serve the read-only price API on :8000
 	@uv run uvicorn api.main:app --reload --port 8000
+
+reload:  ## Rebuild the warehouse from everything already landed
+	@uv run python -m ingestion.load_day_end --landing landing/dse/day_end
+	@cd dbt && uv run dbt build

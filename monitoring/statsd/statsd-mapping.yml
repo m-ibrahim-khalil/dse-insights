@@ -1,0 +1,34 @@
+# Airflow emits StatsD names with the dag and task baked into the metric name,
+# which would give one Prometheus series per task and make "how are all tasks
+# doing" unanswerable. These rules lift them into labels instead.
+#
+# Anything unmatched still passes through with its dots converted to
+# underscores, so adding a rule is an improvement rather than a prerequisite.
+mappings:
+  - match: "airflow.dag.*.*.duration"
+    name: "airflow_task_duration_seconds"
+    labels:
+      dag_id: "$1"
+      task_id: "$2"
+
+  - match: "airflow.dagrun.duration.success.*"
+    name: "airflow_dagrun_duration_success_seconds"
+    labels:
+      dag_id: "$1"
+
+  - match: "airflow.dagrun.duration.failed.*"
+    name: "airflow_dagrun_duration_failed_seconds"
+    labels:
+      dag_id: "$1"
+
+  - match: "airflow.ti.finish.*.*.*"
+    name: "airflow_task_finished_total"
+    labels:
+      dag_id: "$1"
+      task_id: "$2"
+      state: "$3"
+
+  - match: "airflow.dagrun.first_task_scheduling_delay.*"
+    name: "airflow_dagrun_scheduling_delay_seconds"
+    labels:
+      dag_id: "$1"

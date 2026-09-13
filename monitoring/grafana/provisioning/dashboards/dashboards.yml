@@ -1,0 +1,11 @@
+# Dashboards are provisioned from files so they exist on a fresh clone rather
+# than being clicked together by hand and living only in one person's Grafana.
+apiVersion: 1
+providers:
+  - name: dse
+    type: file
+    updateIntervalSeconds: 30
+    allowUiUpdates: false
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false

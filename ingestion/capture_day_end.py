@@ -112,25 +112,49 @@ def capture(date: dt.date, landing: pathlib.Path, today: dt.date) -> str:
     return f"captured {len(payload):,} bytes"
 
 
+def capture_range(landing: pathlib.Path, start: dt.date, end: dt.date, today=None) -> dict:
+    """Capture every date from `start` to `end` inclusive.
+
+    Oldest first, so an interrupted run loses the newest date -- which is also
+    the one most likely to still be refetchable tomorrow.
+    """
+    landing.mkdir(parents=True, exist_ok=True)
+    today = today or dt.date.today()
+
+    outcomes: dict[str, str] = {}
+    date = start
+    while date <= end:
+        try:
+            outcomes[date.isoformat()] = capture(date, landing, today)
+        except Exception as error:
+            # One bad date must not cost us the rest of the window.
+            outcomes[date.isoformat()] = f"FAILED {error!r}"
+        print(f"{date}: {outcomes[date.isoformat()]}", flush=True)
+        date += dt.timedelta(days=1)
+        if date <= end:
+            time.sleep(2)
+    return outcomes
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--days", type=int, default=7)
+    parser.add_argument("--days", type=int, default=7,
+                        help="Capture this many days back from today. Ignored if --start-date is given.")
+    parser.add_argument("--start-date", type=dt.date.fromisoformat)
+    parser.add_argument("--end-date", type=dt.date.fromisoformat,
+                        help="Defaults to yesterday when --start-date is given.")
     parser.add_argument("--landing", type=pathlib.Path, default=pathlib.Path("landing/dse/day_end"))
     args = parser.parse_args()
 
-    args.landing.mkdir(parents=True, exist_ok=True)
     today = dt.date.today()
+    if args.start_date:
+        start, end = args.start_date, args.end_date or today - dt.timedelta(days=1)
+    else:
+        start, end = today - dt.timedelta(days=args.days), today - dt.timedelta(days=1)
 
-    # Oldest first, so an interrupted run loses the newest date, which is also
-    # the one most likely to still be refetchable tomorrow.
-    for offset in range(args.days, 0, -1):
-        date = today - dt.timedelta(days=offset)
-        try:
-            print(f"{date}: {capture(date, args.landing, today)}", flush=True)
-        except Exception as error:
-            # One bad date must not cost us the rest of the window.
-            print(f"{date}: FAILED {error!r}", flush=True)
-        time.sleep(2)
+    outcomes = capture_range(args.landing, start, end, today)
+    if any(o.startswith("FAILED") for o in outcomes.values()):
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

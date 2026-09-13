@@ -130,7 +130,9 @@ Number of shares that changed hands in a trading day.
 _Avoid_: quantity, shares, size
 
 **Turnover**:
-Monetary value of trading in a trading day, in Bangladeshi taka.
+Monetary value of trading in a trading day, in Bangladeshi taka. The exchange
+publishes it in millions to three decimals, so trades below roughly 500 taka
+round to zero and cannot be recovered.
 _Avoid_: value, amount, notional
 
 **Trade Count**:

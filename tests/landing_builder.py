@@ -16,6 +16,18 @@ FIXTURE = pathlib.Path(__file__).resolve().parent / "fixtures" / "day_end_2026-0
 FIXTURE_DATE = "2026-09-03"
 
 
+def fixture_row_count() -> int:
+    """How many instruments the committed fixture holds.
+
+    Derived rather than hardcoded: tests that assert a literal row count break
+    every time the fixture gains an instrument, which punishes exactly the thing
+    that should be easy -- adding a row to cover a newly understood edge case.
+    """
+    from ingestion.load_day_end import parse
+
+    return len(parse(FIXTURE.read_bytes()))
+
+
 def write_day(directory: pathlib.Path, date: str, *, payload: bytes | None = None) -> pathlib.Path:
     """Land one trading day as the fixture, restamped to `date`.
 

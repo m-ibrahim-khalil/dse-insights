@@ -1,0 +1,607 @@
+{
+  "uid": "dse-data-completeness",
+  "title": "DSE \u00b7 Data completeness",
+  "description": "What is actually in the warehouse: which instruments, how many days, which attributes, and where the holes are.",
+  "tags": [
+    "dse"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "5m",
+  "time": {
+    "from": "now-2y",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Instruments ever seen",
+      "description": "Every trading code that has appeared at any point in the window.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dse-warehouse"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dse-warehouse"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "select count(*) from marts.dim_instrument"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Listed on the newest day",
+      "description": "The gap to 'ever seen' is delistings \u2014 mostly bonds reaching maturity.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dse-warehouse"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 0,
+        "w": 8,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dse-warehouse"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "select count(*) from marts.dim_instrument where last_seen_on = (select max(trade_date) from marts.fact_daily_price)"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Trading days held",
+      "description": "",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dse-warehouse"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 0,
+        "w": 8,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dse-warehouse"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "select count(distinct trade_date) from marts.fact_daily_price"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Price rows",
+      "description": "",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dse-warehouse"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 8,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dse-warehouse"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "select count(*) from marts.fact_daily_price"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Completeness",
+      "description": "Days actually held, against the trading days inside each instrument's own first-seen to last-seen span. Not a share of a rectangle: instruments legitimately arrive and leave.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dse-warehouse"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 4,
+        "w": 8,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dse-warehouse"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "with cal as (select distinct trade_date from marts.fact_daily_price), per as (\n  select i.trading_code, min(f.trade_date) as f, max(f.trade_date) as l,\n         count(*) as present,\n         sum(case when f.did_not_trade then 1 else 0 end) as dnt\n  from marts.fact_daily_price f\n  join marts.dim_instrument i using (instrument_key)\n  group by i.trading_code\n)\nselect round(100.0*sum(present)/nullif(sum((select count(*) from cal c where c.trade_date between per.f and per.l)),0), 2)::float8 as completeness\nfrom per"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^completeness$/",
+          "values": false
+        },
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 95
+              },
+              {
+                "color": "green",
+                "value": 99.5
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "table",
+      "title": "Coverage",
+      "description": "The exchange serves a rolling two-year window; nothing older is obtainable.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dse-warehouse"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 4,
+        "w": 8,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dse-warehouse"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "select min(trade_date) as \"first day\", max(trade_date) as \"last day\", count(distinct trade_date) as \"days\" from marts.fact_daily_price"
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "footer": {
+          "show": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "table",
+      "title": "Instrument catalogue",
+      "description": "Every instrument, least complete first. 'Did not trade %' near 100 marks an instrument that is listed and priced but effectively never trades \u2014 treasury bonds, mostly.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dse-warehouse"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 14,
+        "h": 11
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dse-warehouse"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "with cal as (select distinct trade_date from marts.fact_daily_price), per as (\n  select i.trading_code, min(f.trade_date) as f, max(f.trade_date) as l,\n         count(*) as present,\n         sum(case when f.did_not_trade then 1 else 0 end) as dnt\n  from marts.fact_daily_price f\n  join marts.dim_instrument i using (instrument_key)\n  group by i.trading_code\n)\nselect per.trading_code as \"code\",\n       per.f as \"first seen\",\n       per.l as \"last seen\",\n       per.present as \"days held\",\n       (select count(*) from cal c where c.trade_date between per.f and per.l) as \"days expected\",\n       round(100.0*per.present/nullif((select count(*) from cal c where c.trade_date between per.f and per.l),0),1) as \"complete %\",\n       round(100.0*per.dnt/nullif(per.present,0),1) as \"did not trade %\"\nfrom per\norder by \"complete %\" asc, per.trading_code"
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "footer": {
+          "show": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "complete %"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "gradient"
+                }
+              },
+              {
+                "id": "max",
+                "value": 100
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "unit",
+                "value": "percent"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "table",
+      "title": "Attributes",
+      "description": "The four trade prices are missing on exactly the days an instrument did not trade \u2014 123,520 rows, 39.5%, and verified to be precisely the non-traded set: no traded row is missing a price, and no non-traded row carries one. On those same rows volume, turnover and trade count are not missing, they are zero, which is why their `populated` count is the full 312,759. Compare the `zeros` column against `missing` and the two halves line up. The exchange publishes it this way: a non-traded instrument arrives with open, high, low and last-traded zeroed and a close still quoted. One asymmetry is real: turnover has 215 more zeros than volume, because the exchange publishes it in millions to three decimals. A day worth under about 500 taka rounds to 0.000 \u2014 the largest such row implies 500 taka against 310 shares. Kept as zero rather than nulled, since zero is within 500 taka of the truth and a null would lose more than it saves.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dse-warehouse"
+      },
+      "gridPos": {
+        "x": 14,
+        "y": 8,
+        "w": 10,
+        "h": 11
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dse-warehouse"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "select 'open_price' as \"attribute\",\n       count(open_price) as \"populated\",\n       count(*) filter (where open_price = 0) as \"zeros\",\n       count(*) - count(open_price) as \"missing\",\n       round(100.0*(count(*)-count(open_price))/count(*),1) as \"missing %\",\n       min(open_price)::text as \"min\", max(open_price)::text as \"max\"\nfrom marts.fact_daily_price\nunion all\nselect 'high_price' as \"attribute\",\n       count(high_price) as \"populated\",\n       count(*) filter (where high_price = 0) as \"zeros\",\n       count(*) - count(high_price) as \"missing\",\n       round(100.0*(count(*)-count(high_price))/count(*),1) as \"missing %\",\n       min(high_price)::text as \"min\", max(high_price)::text as \"max\"\nfrom marts.fact_daily_price\nunion all\nselect 'low_price' as \"attribute\",\n       count(low_price) as \"populated\",\n       count(*) filter (where low_price = 0) as \"zeros\",\n       count(*) - count(low_price) as \"missing\",\n       round(100.0*(count(*)-count(low_price))/count(*),1) as \"missing %\",\n       min(low_price)::text as \"min\", max(low_price)::text as \"max\"\nfrom marts.fact_daily_price\nunion all\nselect 'last_traded_price' as \"attribute\",\n       count(last_traded_price) as \"populated\",\n       count(*) filter (where last_traded_price = 0) as \"zeros\",\n       count(*) - count(last_traded_price) as \"missing\",\n       round(100.0*(count(*)-count(last_traded_price))/count(*),1) as \"missing %\",\n       min(last_traded_price)::text as \"min\", max(last_traded_price)::text as \"max\"\nfrom marts.fact_daily_price\nunion all\nselect 'close_price' as \"attribute\",\n       count(close_price) as \"populated\",\n       count(*) filter (where close_price = 0) as \"zeros\",\n       count(*) - count(close_price) as \"missing\",\n       round(100.0*(count(*)-count(close_price))/count(*),1) as \"missing %\",\n       min(close_price)::text as \"min\", max(close_price)::text as \"max\"\nfrom marts.fact_daily_price\nunion all\nselect 'previous_close' as \"attribute\",\n       count(previous_close) as \"populated\",\n       count(*) filter (where previous_close = 0) as \"zeros\",\n       count(*) - count(previous_close) as \"missing\",\n       round(100.0*(count(*)-count(previous_close))/count(*),1) as \"missing %\",\n       min(previous_close)::text as \"min\", max(previous_close)::text as \"max\"\nfrom marts.fact_daily_price\nunion all\nselect 'volume' as \"attribute\",\n       count(volume) as \"populated\",\n       count(*) filter (where volume = 0) as \"zeros\",\n       count(*) - count(volume) as \"missing\",\n       round(100.0*(count(*)-count(volume))/count(*),1) as \"missing %\",\n       min(volume)::text as \"min\", max(volume)::text as \"max\"\nfrom marts.fact_daily_price\nunion all\nselect 'turnover' as \"attribute\",\n       count(turnover) as \"populated\",\n       count(*) filter (where turnover = 0) as \"zeros\",\n       count(*) - count(turnover) as \"missing\",\n       round(100.0*(count(*)-count(turnover))/count(*),1) as \"missing %\",\n       min(turnover)::text as \"min\", max(turnover)::text as \"max\"\nfrom marts.fact_daily_price\nunion all\nselect 'trade_count' as \"attribute\",\n       count(trade_count) as \"populated\",\n       count(*) filter (where trade_count = 0) as \"zeros\",\n       count(*) - count(trade_count) as \"missing\",\n       round(100.0*(count(*)-count(trade_count))/count(*),1) as \"missing %\",\n       min(trade_count)::text as \"min\", max(trade_count)::text as \"max\"\nfrom marts.fact_daily_price\norder by \"missing\" desc, \"attribute\""
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "footer": {
+          "show": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "missing %"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Rows per trading day",
+      "description": "One point per trading day. A missing point is a day the warehouse does not hold; a dip is a day the exchange published fewer instruments.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dse-warehouse"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 19,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dse-warehouse"
+          },
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "select trade_date as time, count(*) as instruments from marts.fact_daily_price group by 1 order by 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 15,
+            "showPoints": "never",
+            "axisSoftMin": 0
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Traded vs did not trade",
+      "description": "The split has been remarkably stable near 39% not trading.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dse-warehouse"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 19,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dse-warehouse"
+          },
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "\nselect trade_date as time,\n       count(*) filter (where not did_not_trade) as traded,\n       count(*) filter (where did_not_trade) as \"did not trade\"\nfrom marts.fact_daily_price group by 1 order by 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 15,
+            "showPoints": "never",
+            "axisSoftMin": 0
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "type": "table",
+      "title": "Instruments with gaps",
+      "description": "Instruments absent on days the exchange was open and they were otherwise listed. An empty table is the healthy state.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dse-warehouse"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 27,
+        "w": 24,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dse-warehouse"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "with cal as (select distinct trade_date from marts.fact_daily_price), per as (\n  select i.trading_code, min(f.trade_date) as f, max(f.trade_date) as l,\n         count(*) as present,\n         sum(case when f.did_not_trade then 1 else 0 end) as dnt\n  from marts.fact_daily_price f\n  join marts.dim_instrument i using (instrument_key)\n  group by i.trading_code\n)\nselect per.trading_code as \"code\", per.f as \"first seen\", per.l as \"last seen\",\n       (select count(*) from cal c where c.trade_date between per.f and per.l) - per.present as \"days missing\",\n       per.present as \"days held\"\nfrom per\nwhere (select count(*) from cal c where c.trade_date between per.f and per.l) > per.present\norder by \"days missing\" desc"
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "footer": {
+          "show": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": true
+          }
+        },
+        "overrides": []
+      }
+    }
+  ]
+}

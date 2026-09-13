@@ -67,9 +67,13 @@ an assumption:
   price, so in `staging` those four become NULL and `did_not_trade` is set. The
   close and previous close are KEPT as published, and volume, turnover and trade
   count are kept as zero -- zero is the truth about activity. The rule is "fields
-  the exchange zeroes become NULL; fields it populates are kept". Do not null the
-  close: the exchange publishes a daily valuation for instruments that never
-  trade, and for a treasury bond it is the only price that exists. OHLC
+  the exchange zeroes become NULL; fields it populates are kept" -- applied per
+  ROW, not per column. Do not null the close wholesale: the exchange publishes a
+  daily valuation for instruments that never trade, and for a treasury bond it is
+  the only price that exists. But where the exchange DOES zero the close, that is
+  absence too: a zero close marks an instrument's last day (a bond maturing, or a
+  delisting after suspension) and a zero previous close marks a first day. Both
+  become NULL. Left as zero, a bond that matured at par reported a -100% return. OHLC
   assertions must be restricted to `WHERE NOT did_not_trade` or they fail on a
   third of all rows (ADR 0006).
 - **`close_price` is the exchange's official (weighted) close.** `last_traded_price`
@@ -121,8 +125,12 @@ omission.
   ADR; do not author one unasked.
 - Before adding any technology, it must have a problem it solves, something tried
   first, a stated cost, and a two-sentence explanation.
-- Airflow, Docker, S3, AWS, CI beyond capture, indicators, dashboards, news, ML,
-  Kafka/Spark/Kubernetes are all explicitly out of the MVP and sequenced (or
+- **Airflow, Docker, Prometheus and Grafana are now IN the MVP** (decided
+  2026-09-12, reversing the earlier deferral). Capture became automated while
+  load and dbt stayed manual, so the warehouse drifted behind landing with
+  nothing to report it. See `docs/tickets/orchestration/`.
+- S3, AWS, CI beyond capture, indicators, a dashboard over the data, news, ML,
+  Kafka/Spark/Kubernetes remain explicitly out of the MVP and sequenced (or
   refused) in PLAN.md §4 and §7. Don't reach for them.
 
 ## Price adjustment

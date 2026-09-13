@@ -51,6 +51,16 @@ EXPECTED = {
         previous_close=D("97.61"), trade_count=0,
         turnover=D("0.000"), volume=0, did_not_trade=True,
     ),
+    # A treasury bond on its maturity day. The exchange zeroes everything
+    # including the close, keeping only the previous close. A zero close is not a
+    # price of zero, it is the absence of a valuation -- left as 0 it reads as a
+    # -100% return on an instrument that matured at par.
+    "TB15Y0925": dict(
+        open_price=None, high_price=None, low_price=None,
+        close_price=None, last_traded_price=None,
+        previous_close=D("100.00"), trade_count=0,
+        turnover=D("0.000"), volume=0, did_not_trade=True,
+    ),
     "SQURPHARMA": dict(
         open_price=D("216.50"), high_price=D("217.90"), low_price=D("214.00"),
         close_price=D("215.80"), last_traded_price=D("215.30"),

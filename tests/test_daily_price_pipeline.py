@@ -98,4 +98,29 @@ def test_non_traded_instrument_still_has_a_row(warehouse):
     with warehouse.cursor() as cursor:
         cursor.execute(
             "select count(*) from marts.fact_daily_price where did_not_trade")
-        assert cursor.fetchone()[0] == 1
+        assert cursor.fetchone()[0] == 2
+
+
+def test_a_zero_close_becomes_null_not_a_price_of_zero(warehouse):
+    """The exchange zeroes the close on an instrument's final day.
+
+    Treasury bonds reaching maturity, and instruments delisted after suspension,
+    arrive with every price zeroed including the close. Kept as 0 it is not
+    merely wrong, it is confidently wrong: a bond that matured at par reads as a
+    -100% return on its last day.
+    """
+    row = fact_row(warehouse, "TB15Y0925")
+    assert row["close_price"] is None
+    assert row["previous_close"] == EXPECTED["TB15Y0925"]["previous_close"]
+    assert row["did_not_trade"] is True
+
+
+def test_no_price_anywhere_is_zero(warehouse):
+    """Zero is never a price, in any price column, on any row."""
+    with warehouse.cursor() as cursor:
+        cursor.execute("""
+            select count(*) from marts.fact_daily_price
+            where 0 in (open_price, high_price, low_price, close_price,
+                        last_traded_price, previous_close)
+        """)
+        assert cursor.fetchone()[0] == 0

@@ -1,0 +1,25 @@
+# Two scrape targets, answering two different questions.
+#
+#   airflow  -- is the machinery running?
+#   dse      -- is the data worth trusting?
+#
+# The second is the one this project exists for. A pipeline can be green for a
+# week while the exchange serves error pages.
+
+global:
+  scrape_interval: 30s
+  scrape_timeout: 10s
+
+scrape_configs:
+  - job_name: dse
+    static_configs:
+      - targets: ["dse-metrics:9108"]
+
+  # Airflow emits StatsD, not Prometheus, so statsd-exporter translates.
+  - job_name: airflow
+    static_configs:
+      - targets: ["statsd-exporter:9102"]
+
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]

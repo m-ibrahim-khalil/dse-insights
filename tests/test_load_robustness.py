@@ -11,7 +11,7 @@ import subprocess
 import pytest
 
 from ingestion.load_day_end import load
-from tests.landing_builder import write_day
+from tests.landing_builder import fixture_row_count, write_day
 
 pytestmark = pytest.mark.pipeline
 
@@ -54,8 +54,8 @@ def test_a_corrupt_file_does_not_stop_its_neighbours(connection, tmp_path):
 
     assert sorted(report.loaded) == [DATES[0], DATES[2]]
     assert DATES[1] in report.failed
-    assert raw_rows(connection, DATES[0]) == 6
-    assert raw_rows(connection, DATES[2]) == 6
+    assert raw_rows(connection, DATES[0]) == fixture_row_count()
+    assert raw_rows(connection, DATES[2]) == fixture_row_count()
 
 
 def test_a_failure_names_the_file_and_the_reason(connection, tmp_path):
