@@ -28,7 +28,8 @@ and previous close are kept exactly as published. Volume, turnover and trade
 count are kept as zero.
 
 Stated as one rule rather than a list to memorise: **fields the exchange zeroes
-become NULL; fields it populates are kept.**
+become NULL; fields it populates are kept.** The rule is applied per row, not per
+column — which is the part I got wrong the first time.
 
 ## What I measured
 
@@ -95,9 +96,8 @@ consumer may want.
 - If a consumer computing returns were found treating a non-traded close as a
   tradeable price, the flag is not doing its job and the contract needs to be
   louder than a boolean.
-- The three non-traded rows with a zero close are unexplained. I did not chase
-  them. If they turn out to be a category rather than noise, the rule needs a
-  case for them.
+- ~~The three non-traded rows with a zero close are unexplained.~~ **Chased, and
+  they were a category.** See below.
 
 ## Why the original version was wrong
 
@@ -109,3 +109,34 @@ non-traded row is empty.
 
 That assumption is wrong for this exchange, and the disagreement between the two
 halves of the document is the trace it left.
+
+
+## Amendment, 2026-09-13: the zero closes were a category
+
+The section above left three non-traded rows with a zero close unexplained, and
+predicted that if they were a category rather than noise the rule would need a
+case for them. Over the full two years there are twelve, and they are two
+categories, both meaning *absent*:
+
+- **An instrument's final day.** Five treasury bonds each show a zero close on
+  exactly the day they were last seen, which is their maturity — `TB15Y1125` on
+  2025-11-10, `TB2Y0626` on 2026-06-07, and so on. The instrument names encode
+  the maturity and the data agrees.
+- **A delisting after suspension.** `SALVOCHEM` traded normally to 2025-12-02,
+  then posted seven consecutive sessions with a zero close and no trades, and was
+  never seen again.
+
+A zero *previous* close is the mirror image: 28 of 29 are an instrument's first
+day, and the twenty-ninth is `TB2Y0727` returning after a 270-day absence. In
+every case the exchange is saying "there was no prior session", not "the prior
+close was zero".
+
+The implementation had applied the rule to four columns rather than to whatever
+the exchange actually zeroed, so these survived as genuine zeros. That is not a
+cosmetic difference. A bond that matured at par reported a **-100% return** on
+its final day, in a project whose entire argument is that zero is not a price.
+Twelve rows, confidently wrong, and quiet for two years.
+
+Both now become NULL, and an assertion —
+`fact_daily_price_no_price_is_zero` — fails the build if a zero ever appears in
+any price column again.

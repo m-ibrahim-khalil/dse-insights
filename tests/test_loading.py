@@ -9,7 +9,7 @@ import pathlib
 import pytest
 
 from ingestion.load_day_end import load
-from tests.landing_builder import write_day, write_non_trading_day
+from tests.landing_builder import fixture_row_count, write_day, write_non_trading_day
 
 pytestmark = pytest.mark.pipeline
 
@@ -51,7 +51,7 @@ def test_a_range_loads_every_landed_day(connection, tmp_path):
         write_day(tmp_path, date)
     report = load(connection, tmp_path)
     assert sorted(report.loaded) == DATES[:3]
-    assert all(raw_rows(connection, d) == 6 for d in DATES[:3])
+    assert all(raw_rows(connection, d) == fixture_row_count() for d in DATES[:3])
 
 
 def test_loading_the_same_day_twice_changes_nothing(connection, tmp_path):
@@ -73,15 +73,16 @@ def test_a_day_that_shrinks_leaves_no_orphans(connection, tmp_path):
     """
     write_day(tmp_path, DATES[0])
     load(connection, tmp_path)
-    assert raw_rows(connection, DATES[0]) == 6
+    assert raw_rows(connection, DATES[0]) == fixture_row_count()
 
     payload = (pathlib.Path(__file__).parent / "fixtures" / "day_end_2026-09-03.html").read_text()
-    head, _, _ = payload.partition('<tr>\n<td width="4%">6</td>')
+    last = fixture_row_count()
+    head, _, _ = payload.partition(f'<tr>\n<td width="4%">{last}</td>')
     delisted = head + "</tbody>\n</table>\n</div>\n</body></html>\n"
     write_day(tmp_path, DATES[0], payload=delisted.encode())
 
     load(connection, tmp_path)
-    assert raw_rows(connection, DATES[0]) == 5, "the delisted instrument must leave no orphan"
+    assert raw_rows(connection, DATES[0]) == fixture_row_count() - 1, "the delisted instrument must leave no orphan"
 
 
 def test_a_range_spanning_a_non_session_date_succeeds(connection, tmp_path):
