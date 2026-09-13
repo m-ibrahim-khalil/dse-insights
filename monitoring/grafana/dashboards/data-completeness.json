@@ -257,7 +257,7 @@
           },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "with cal as (select distinct trade_date from marts.fact_daily_price), per as (\n  select i.trading_code, min(f.trade_date) as f, max(f.trade_date) as l,\n         count(*) as present,\n         sum(case when f.did_not_trade then 1 else 0 end) as dnt\n  from marts.fact_daily_price f\n  join marts.dim_instrument i using (instrument_key)\n  group by i.trading_code\n)\nselect round(100.0*sum(present)/nullif(sum((select count(*) from cal c where c.trade_date between per.f and per.l)),0), 2)\nfrom per"
+          "rawSql": "with cal as (select distinct trade_date from marts.fact_daily_price), per as (\n  select i.trading_code, min(f.trade_date) as f, max(f.trade_date) as l,\n         count(*) as present,\n         sum(case when f.did_not_trade then 1 else 0 end) as dnt\n  from marts.fact_daily_price f\n  join marts.dim_instrument i using (instrument_key)\n  group by i.trading_code\n)\nselect round(100.0*sum(present)/nullif(sum((select count(*) from cal c where c.trade_date between per.f and per.l)),0), 2)::float8 as completeness\nfrom per"
         }
       ],
       "options": {
@@ -265,7 +265,7 @@
           "calcs": [
             "lastNotNull"
           ],
-          "fields": "",
+          "fields": "/^completeness$/",
           "values": false
         },
         "textMode": "auto",
@@ -298,7 +298,7 @@
       }
     },
     {
-      "type": "stat",
+      "type": "table",
       "title": "Coverage",
       "description": "The exchange serves a rolling two-year window; nothing older is obtainable.",
       "datasource": {
@@ -320,33 +320,19 @@
           },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "select min(trade_date)::text || '  \u2192  ' || max(trade_date)::text as coverage from marts.fact_daily_price"
+          "rawSql": "select min(trade_date) as \"first day\", max(trade_date) as \"last day\", count(distinct trade_date) as \"days\" from marts.fact_daily_price"
         }
       ],
       "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": true
-        },
-        "textMode": "auto",
-        "colorMode": "value",
-        "graphMode": "none"
+        "showHeader": true,
+        "footer": {
+          "show": false
+        }
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "none",
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "text",
-                "value": null
-              }
-            ]
+          "custom": {
+            "align": "auto"
           }
         },
         "overrides": []
@@ -425,7 +411,7 @@
     {
       "type": "table",
       "title": "Attributes",
-      "description": "Nulls here are a decision, not damage. The four trade prices are null on days an instrument did not trade \u2014 about 39% of rows \u2014 while close and previous close are always present, because the exchange publishes a valuation even for instruments that never trade (ADR 0006).",
+      "description": "How much of each attribute is actually present. `populated` is the row count that has a value \u2014 every one of 312k rows for volume, turnover, trade count, close and previous close. The four trade prices are missing on days an instrument did not trade, about 39% of rows, which is a modelling decision rather than damage: the exchange publishes a valuation even for instruments that never trade, so close survives where open, high, low and last-traded do not (ADR 0006).",
       "datasource": {
         "type": "grafana-postgresql-datasource",
         "uid": "dse-warehouse"
@@ -445,7 +431,7 @@
           },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "\nselect 'open_price' as \"attribute\", 'numeric' as \"type\",\n       count(*) filter (where open_price is null) as \"nulls\",\n       round(100.0*count(*) filter (where open_price is null)/count(*),1) as \"null %\" from marts.fact_daily_price\nunion all select 'high_price','numeric',count(*) filter (where high_price is null),round(100.0*count(*) filter (where high_price is null)/count(*),1) from marts.fact_daily_price\nunion all select 'low_price','numeric',count(*) filter (where low_price is null),round(100.0*count(*) filter (where low_price is null)/count(*),1) from marts.fact_daily_price\nunion all select 'last_traded_price','numeric',count(*) filter (where last_traded_price is null),round(100.0*count(*) filter (where last_traded_price is null)/count(*),1) from marts.fact_daily_price\nunion all select 'close_price','numeric',count(*) filter (where close_price is null),round(100.0*count(*) filter (where close_price is null)/count(*),1) from marts.fact_daily_price\nunion all select 'previous_close','numeric',count(*) filter (where previous_close is null),round(100.0*count(*) filter (where previous_close is null)/count(*),1) from marts.fact_daily_price\nunion all select 'volume','bigint',count(*) filter (where volume is null),round(100.0*count(*) filter (where volume is null)/count(*),1) from marts.fact_daily_price\nunion all select 'turnover','numeric',count(*) filter (where turnover is null),round(100.0*count(*) filter (where turnover is null)/count(*),1) from marts.fact_daily_price\nunion all select 'trade_count','bigint',count(*) filter (where trade_count is null),round(100.0*count(*) filter (where trade_count is null)/count(*),1) from marts.fact_daily_price\norder by \"nulls\" desc"
+          "rawSql": "select 'open_price' as \"attribute\", 'numeric' as \"type\",\n       count(open_price) as \"populated\",\n       count(*) - count(open_price) as \"missing\",\n       round(100.0*(count(*)-count(open_price))/count(*),1) as \"missing %\",\n       min(open_price)::text as \"min\", max(open_price)::text as \"max\"\nfrom marts.fact_daily_price\nunion all\nselect 'high_price' as \"attribute\", 'numeric' as \"type\",\n       count(high_price) as \"populated\",\n       count(*) - count(high_price) as \"missing\",\n       round(100.0*(count(*)-count(high_price))/count(*),1) as \"missing %\",\n       min(high_price)::text as \"min\", max(high_price)::text as \"max\"\nfrom marts.fact_daily_price\nunion all\nselect 'low_price' as \"attribute\", 'numeric' as \"type\",\n       count(low_price) as \"populated\",\n       count(*) - count(low_price) as \"missing\",\n       round(100.0*(count(*)-count(low_price))/count(*),1) as \"missing %\",\n       min(low_price)::text as \"min\", max(low_price)::text as \"max\"\nfrom marts.fact_daily_price\nunion all\nselect 'last_traded_price' as \"attribute\", 'numeric' as \"type\",\n       count(last_traded_price) as \"populated\",\n       count(*) - count(last_traded_price) as \"missing\",\n       round(100.0*(count(*)-count(last_traded_price))/count(*),1) as \"missing %\",\n       min(last_traded_price)::text as \"min\", max(last_traded_price)::text as \"max\"\nfrom marts.fact_daily_price\nunion all\nselect 'close_price' as \"attribute\", 'numeric' as \"type\",\n       count(close_price) as \"populated\",\n       count(*) - count(close_price) as \"missing\",\n       round(100.0*(count(*)-count(close_price))/count(*),1) as \"missing %\",\n       min(close_price)::text as \"min\", max(close_price)::text as \"max\"\nfrom marts.fact_daily_price\nunion all\nselect 'previous_close' as \"attribute\", 'numeric' as \"type\",\n       count(previous_close) as \"populated\",\n       count(*) - count(previous_close) as \"missing\",\n       round(100.0*(count(*)-count(previous_close))/count(*),1) as \"missing %\",\n       min(previous_close)::text as \"min\", max(previous_close)::text as \"max\"\nfrom marts.fact_daily_price\nunion all\nselect 'volume' as \"attribute\", 'bigint' as \"type\",\n       count(volume) as \"populated\",\n       count(*) - count(volume) as \"missing\",\n       round(100.0*(count(*)-count(volume))/count(*),1) as \"missing %\",\n       min(volume)::text as \"min\", max(volume)::text as \"max\"\nfrom marts.fact_daily_price\nunion all\nselect 'turnover' as \"attribute\", 'numeric' as \"type\",\n       count(turnover) as \"populated\",\n       count(*) - count(turnover) as \"missing\",\n       round(100.0*(count(*)-count(turnover))/count(*),1) as \"missing %\",\n       min(turnover)::text as \"min\", max(turnover)::text as \"max\"\nfrom marts.fact_daily_price\nunion all\nselect 'trade_count' as \"attribute\", 'bigint' as \"type\",\n       count(trade_count) as \"populated\",\n       count(*) - count(trade_count) as \"missing\",\n       round(100.0*(count(*)-count(trade_count))/count(*),1) as \"missing %\",\n       min(trade_count)::text as \"min\", max(trade_count)::text as \"max\"\nfrom marts.fact_daily_price\norder by \"missing\" desc, \"attribute\""
         }
       ],
       "options": {
@@ -461,7 +447,34 @@
             "filterable": true
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "populated"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "text",
+                      "value": null
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
       }
     },
     {
